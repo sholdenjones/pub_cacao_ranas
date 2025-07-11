@@ -54,17 +54,28 @@ new <- ranas %>%
 ```
 
 
+#3. environmental
+
+environmental - environmental data collected for each sampling event
+```{r}
+# environmental data - change VC-V to VC-N
+environmental <- read_csv("data/raw_data/environment_07_12_24.csv")
+
+environmental$sample_date <- as.Date(environmental$Fecha, format = "%d/%m/%y")
+
+# update VC-N
+environmental <- environmental %>%
+  mutate(Sitio = replace(Sitio, Sitio == "VC-V", "VC-N"))
+
+environmental$Tipo[environmental$Sitio == "VC-N"] <- "N"
+```
 
 
 
 
+#4. site_data
 
-
-
-#3. site_data
-
-## NEED ALL LOCAL AND LANDSCAPE VAR VALUES FOR EACH SITE AT SITE LEVEL
-
+site_data - this df will have all response and predictor vars for each site
 
 trans_data - location, canopy cover, pair, miscellaneous data for each transect
 ```{r}
@@ -75,14 +86,188 @@ trans_data <- trans_data %>%
   mutate(Sitio = replace(Sitio, Sitio == "VC-V", "VC-N"))
 
 trans_data$Tipo[trans_data$Sitio == "VC-N"] <- "N"
+
+# filter out location info for each transect, notes for finding sites
+trans_data <- trans_data %>%
+  select(-c('Start UTM 1', 'Start UTM 2', 'End UTM 1', 'End UTM 2', 
+            'End Latitude', 'End Longitude', 'Notas'))
+```
+
+calculate transect mean canopy cover for each transect
+```{r}
+trans_data <- trans_data %>%
+  rowwise() %>%
+  mutate( # calculate transect mean canopy cover
+    tran_mean_CC = mean(c_across(`CC A`:`CC D`), na.rm = TRUE)) %>%
+  select(-c('CC A', 'CC B', 'CC C', 'CC D')) # now can remove CC quadrats
 ```
 
 
-site_data - contains elevation, tipo data
+
+
+bring in transect vars collected during each site visit with environmental df
+
+'fill in' veg and hoja columns
+- these were measured during first site visit in each sampling round
+- if no change between subsequent visits, wrote 'same' - vast majority
+
+fill these columns based on values of previous visit
 ```{r}
-site_type <- site_data %>% # create site_type df - include name, elevation
-  filter(Transecto == 1) %>% # so just one row per site
-  select(Sitio, Tipo, Elevation, Pair)
+environmental <- environmental %>%
+  group_by(Sitio, Fecha, Transecto, Bloque) %>%
+  mutate(Veg_fill = if_else(Veg == 'same', NA_character_, Veg),
+         Hoja_fill = if_else(Hoja =='same', NA_character_, Hoja))
+
+environmental <- environmental %>%
+  group_by(Sitio, Transecto, Bloque) %>%
+  fill(Veg_fill, .direction = "down") %>%
+  fill(Hoja_fill, .direction = "down") %>%
+  ungroup()
+
+# now make 'Veg_fill' the only veg column to avoid confusion, same for Hoja
+environmental <- environmental %>%
+  select(-c('Veg', 'Hoja'))
+```
+
+
+now can calculate site averages for vegetation and hojarasca
+
+
+## RESUME HERE - want to confirm that these are getting calculated correctly
+```{r}
+environmental$Veg_fill <- as.numeric(environmental$Veg_fill)
+environmental$Hoja_fill <- as.numeric(environmental$Hoja_fill)
+
+test <- environmental %>%
+  group_by(Sitio) %>%
+  mutate(site_mean_hoja = mean(Hoja_fill),
+         site_mean_veg = mean(Veg_fill))
+
+
+
+
+mutate( # calculate transect mean canopy cover
+    tran_mean_CC = mean(c_across(`CC A`:`CC D`), na.rm = TRUE))
+
+
+
+
+
+
+
+
+environment_fill_by_trans <- environment_fill %>%
+  group_by(Sitio, Transecto) %>% # add Fecha if want each transect visit
+  summarize(tran_mean_veg = mean(Veg_fill, na.rm = TRUE),
+            tran_mean_hoja = mean(Hoja_fill, na.rm = TRUE)
+            )
+```
+
+
+
+
+now join this dataframe with local_by_trans
+- ONLY INCLUDING PLANTATIONS HERE! SO ONLY N, C
+```{r}
+local_by_trans <- left_join(environment_fill_by_trans, local_by_trans,
+                                 by = c("Sitio", "Transecto"))
+
+# local_by_trans <- local_by_trans %>%
+#   select(Sitio, Tipo, Transecto, 
+#          tran_mean_veg, tran_mean_hoja, Pair,
+#          tran_mean_CC, tran_coef_var_CC,
+#          forest_cover_400, water_dist)
+
+# bin all transect measurements to categories used in Islas studies
+
+# Define the breaks (bins) and labels
+breaks <- c(0, 1, 5, 10, 25, 50, 75, 95, 100)
+labels <- c("0", "1-5", "5-10", "10-25", "25-50", "50-75", "75-95", "95-100")
+
+local_by_trans$veg_bins <- cut(local_by_trans$tran_mean_veg, 
+                                   breaks = breaks, 
+                                   labels = labels, 
+                                   include.lowest = TRUE, 
+                                   right = FALSE)
+
+local_by_trans$hoja_bins <- cut(local_by_trans$tran_mean_hoja, 
+                                   breaks = breaks, 
+                                   labels = labels, 
+                                   include.lowest = TRUE, 
+                                   right = FALSE)
+
+local_by_trans$CC_bins <- cut(local_by_trans$tran_mean_CC, 
+                                   breaks = breaks, 
+                                   labels = labels, 
+                                   include.lowest = TRUE, 
+                                   right = FALSE)
+```
+
+
+
+
+standardize all variables for local_by_trans for multivariate models
+```{r}
+local_by_trans <- local_by_trans %>%
+  ungroup() %>% # Ungrouping to scale variables
+  mutate(tran_mean_veg_scaled = as.numeric(scale(tran_mean_veg)),
+         tran_mean_hoja_scaled = as.numeric(scale(tran_mean_hoja)),
+         tran_mean_CC_scaled = as.numeric(scale(tran_mean_CC)),
+         forest_cover_400_scaled = as.numeric(scale(forest_cover_400)),
+         water_dist_scaled = as.numeric(scale(water_dist)))
+
+# filename <- "local_by_trans_processed.csv"
+# filepath <- file.path(data_dir, filename)
+# write_csv(local_by_trans, file = filepath)
+```
+
+
+## NEED TO SCALE ELEVATION VAR TOO!!!!!!!!! URGENT
+
+
+
+
+# local_by_site
+easier to work at site level - removes lots of strange use cases
+- use local_by_trans df from above to calculate site-level local variables 
+```{r}
+# # format dates, create year column
+# local_by_trans$sample_date <- as.Date(local_by_trans$Fecha, format = "%d/%m/%y")
+# local_by_trans <- local_by_trans %>%
+#   mutate(year = substr(sample_date, 1, 4))
+
+# calculate site-level averages for local vars
+local_by_site <- local_by_trans %>%
+  group_by(Sitio) %>%
+  mutate(site_mean_veg = mean(tran_mean_veg),
+         site_mean_hoja = mean(tran_mean_hoja),
+         site_mean_CC = mean(tran_mean_CC)
+  )
+
+
+## TEST INCLUDE ELEVATION AS SCALED VAR! DUH
+
+# scale all vars
+local_by_site <- local_by_site %>%
+  ungroup() %>% # Ungrouping to scale variables
+  mutate(site_mean_veg_scaled = as.numeric(scale(site_mean_veg)),
+         site_mean_hoja_scaled = as.numeric(scale(site_mean_hoja)),
+         site_mean_CC_scaled = as.numeric(scale(site_mean_CC)),
+         forest_cover_400_scaled = as.numeric(scale(forest_cover_400)),
+         water_dist_scaled = as.numeric(scale(water_dist)))
+```
+
+
+
+
+
+
+
+
+
+```{r}
+site_data <- trans_data %>% 
+  filter(Transecto == 1) # just one row (transect) per site
 
 # reorder factor levels now for downstream plotting
 site_type$Tipo <- factor(site_type$Tipo, c("N", "C", "V", "B"))
