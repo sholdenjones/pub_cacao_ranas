@@ -1,0 +1,206 @@
+---
+title: "process"
+author: "Holden Jones"
+date: "2025-07-09"
+output: html_document
+---
+
+script for data processing
+
+#1. Load libraries
+
+```{r}
+library(tidyverse)
+library(vegan)
+library(labdsv)
+```
+
+define file path for processed outputs
+```{r}
+# this will be consistent for each output in this script
+data_dir <- file.path(".", "data/processed_data")
+```
+
+
+#2. new
+
+ranas - individual occurrence data across all sites
+```{r}
+# read raw ranas data
+ranas <- read_csv("data/raw_data/ranas_01_28_25.csv") %>%
+  select(-...20, -...21) # remove dummy columns 
+
+# format dates
+ranas$sample_date <- as.Date(ranas$Fecha, format = "%d/%m/%y")
+
+ranas <- ranas %>%
+  mutate(year = substr(sample_date, 1, 4))
+
+# need to change VC-V to VC-N, turns out this site was not actually abandoned!
+ranas <- ranas %>%
+  mutate(Sitio = replace(Sitio, Sitio == "VC-V", "VC-N"))
+
+ranas$Tipo[ranas$Sitio == "VC-N"] <- "N"
+
+# change all epibou to epiesp 
+# Lopez-Hervas et al. 2024 show that epibou in this area is actually epiesp
+ranas$Final_ID[ranas$Final_ID == "epibou"] <- "epiesp"
+```
+
+new - only unique ind. from ranas. Used in analyses
+```{r}
+new <- ranas %>%
+  filter(Recap == "N") # excludes recaptured individuals
+```
+
+
+
+
+
+
+
+
+
+#3. site_data
+
+## NEED ALL LOCAL AND LANDSCAPE VAR VALUES FOR EACH SITE AT SITE LEVEL
+
+
+trans_data - location, canopy cover, pair, miscellaneous data for each transect
+```{r}
+trans_data <- read_csv("data/raw_data/trans_data_08_19_24.csv")
+
+# change VC-V to VC-N
+trans_data <- trans_data %>%
+  mutate(Sitio = replace(Sitio, Sitio == "VC-V", "VC-N"))
+
+trans_data$Tipo[trans_data$Sitio == "VC-N"] <- "N"
+```
+
+
+site_data - contains elevation, tipo data
+```{r}
+site_type <- site_data %>% # create site_type df - include name, elevation
+  filter(Transecto == 1) %>% # so just one row per site
+  select(Sitio, Tipo, Elevation, Pair)
+
+# reorder factor levels now for downstream plotting
+site_type$Tipo <- factor(site_type$Tipo, c("N", "C", "V", "B"))
+
+# make Pair a factor for glms
+# MAY NEED TO SET PAIR AS FACTOR
+#site_type$Pair <- factor(site_type$Pair)
+
+
+# # output
+# filename <- "site_type_processed.csv"
+# filepath <- file.path(data_dir, filename)
+# write_csv(site_type, file = filepath)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#4. cacao_paired
+
+- remove VC-V b/c not paired
+
+df for first analysis goal. compare abundance, richness, diversity b/ween pairs
+
+
+## combine richness, diversity, abundance_by_site dfs into one df for easier
+
+
+```{r}
+richness_by_site <- new %>%
+  group_by(Sitio) %>%
+  summarize(species = list(sort(unique(`Final_ID`))),
+            no_species = n_distinct(`Final_ID`))
+```
+
+
+
+just number of ind
+```{r}
+# note this is same as site_abundance above
+abundance_by_site <- new %>%
+  group_by(Sitio) %>%
+  count()
+
+# join with site_type to carry over tipo, elevation, harvested info
+abundance_by_site <- abundance_by_site %>%
+  left_join(site_type, by = "Sitio")
+
+abundance_by_site$Tipo <- factor(abundance_by_site$Tipo, c("N", "C", "V", "B"))
+
+# # output
+# filename <- "abundance_by_site_processed.csv"
+# filepath <- file.path(data_dir, filename)
+# write_csv(abundance_by_site, file = filepath)
+```
+
+
+make new_mat - intermediate step for diversity indices from vegan
+```{r}
+three_column <- new %>%
+  group_by(Sitio) %>%
+  count(`Final_ID`)
+
+# needs to be converted to data.frame!
+three_column <- data.frame(three_column)
+
+new_mat <- matrify(three_column)
+
+# Define the desired order of rows: Shade, Sun, Abandoned, Forest
+new_order <- c(1,3,5,8,19,20,22,25,27,29,30,32, # shade (n=12)
+               2,4,7,16,18,21,23,24,26,28,31, # sun (n=11)
+               9,13,14,17, # abandoned (n=4)
+               6,10,11,12,15 # forest (n=5)
+               )
+
+# Reorder rows
+new_mat <- new_mat[new_order, ]
+```
+
+
+
+diversity_by_site - each major diversity metric
+```{r}
+# use diversity function from vegan package
+diversity_by_site <- site_type %>%
+    mutate(Shannon_Index = diversity(new_mat, index = "shannon")) %>%
+    mutate(Simpson_Index = diversity(new_mat, index = "simpson")) %>%
+    mutate(Inv_Simpson_Index = diversity(new_mat, index = "invsimpson"))
+
+# # output
+# filename <- "diversity_by_site_processed.csv"
+# filepath <- file.path(data_dir, filename)
+# write_csv(diversity_by_site, file = filepath)
+```
+
+
+
+
+
+
+
+
