@@ -27,7 +27,7 @@ data_dir <- file.path(".", "data/processed_data")
 ranas - individual occurrence data across all sites
 ```{r}
 # read raw ranas data
-ranas <- read_csv("data/raw_data/ranas_01_28_25.csv") %>%
+ranas <- read_csv("data/raw_data/ranas_07_14_25.csv") %>%
   select(-...20, -...21) # remove dummy columns 
 
 # format dates
@@ -51,6 +51,11 @@ new - only unique ind. from ranas. Used in analyses
 ```{r}
 new <- ranas %>%
   filter(Recap == "N") # excludes recaptured individuals
+
+# explore / check how many species - 31
+new %>%
+  group_by(Final_ID) %>%
+  count()
 ```
 
 
@@ -105,42 +110,26 @@ environmental <- environmental %>%
   group_by(Sitio) %>%
   mutate(site_mean_hoja = mean(Hoja_fill),
          site_mean_veg = mean(Veg_fill))
-
-# now only need one row per site - cut down to 32 rows
-
-
-# remove potentially confusing columns
 ```
 
-
-
+remove unnecessary columns and rows
+- for what we're doing, only need Sitio, site_mean_hoja, site_mean_veg
+- just need one row per site
 ```{r}
-mutate( # calculate transect mean canopy cover
-    tran_mean_CC = mean(c_across(`CC A`:`CC D`), na.rm = TRUE))
-
-
-
-
-
-
-
-
-environment_fill_by_trans <- environment_fill %>%
-  group_by(Sitio, Transecto) %>% # add Fecha if want each transect visit
-  summarize(tran_mean_veg = mean(Veg_fill, na.rm = TRUE),
-            tran_mean_hoja = mean(Hoja_fill, na.rm = TRUE)
-            )
+environmental_site <- environmental %>% 
+  select(c('Sitio', 'site_mean_hoja', 'site_mean_veg')) %>%
+  group_by(Sitio) %>%
+  filter(!duplicated(Sitio))
 ```
-
-
-
 
 
 #4. site_data
 
 site_data - this df will have all response and predictor vars for each site
+- create by merging environmental_site and site_data created from trans_data
 
 trans_data - location, canopy cover, pair, miscellaneous data for each transect
+- collected during transect establishment
 ```{r}
 trans_data <- read_csv("data/raw_data/trans_data_08_19_24.csv")
 
@@ -154,21 +143,88 @@ trans_data$Tipo[trans_data$Sitio == "VC-N"] <- "N"
 trans_data <- trans_data %>%
   select(-c('Start UTM 1', 'Start UTM 2', 'End UTM 1', 'End UTM 2', 
             'End Latitude', 'End Longitude', 'Notas'))
-```
 
-calculate transect mean canopy cover for each transect
-```{r}
+# calculate transect mean canopy cover and then remove CC cols
 trans_data <- trans_data %>%
   rowwise() %>%
-  mutate( # calculate transect mean canopy cover
-    tran_mean_CC = mean(c_across(`CC A`:`CC D`), na.rm = TRUE)) %>%
-  select(-c('CC A', 'CC B', 'CC C', 'CC D')) # now can remove CC quadrat cols
+  mutate(tran_mean_CC = mean(c_across(`CC A`:`CC D`), na.rm = TRUE)) %>%
+  select(-c('CC A', 'CC B', 'CC C', 'CC D'))
+```
+
+create site_data df, only 32 rows
+```{r}
+site_data <- trans_data %>% 
+  filter(Transecto == 1) %>%
+  select(-'Transecto')
+```
+
+now merge with environmental_site created above
+```{r}
+site_data <- merge(site_data, environmental_site, by = 'Sitio')
+```
+
+
+#5. amphibian data
+
+calculate site-level abundance, richness, diversity and merge with site_data
+
+abundance
+```{r}
+abundance_by_site <- new %>%
+  group_by(Sitio) %>%
+  count()
+
+site_data <- merge(site_data, abundance_by_site, by = 'Sitio')
+```
+
+richness
+```{r}
+richness_by_site <- new %>%
+  group_by(Sitio) %>%
+  summarize(species = list(sort(unique(`Final_ID`))),
+            no_species = n_distinct(`Final_ID`)) %>%
+  select(-'species')
+
+site_data <- merge(site_data, richness_by_site, by = 'Sitio')
+```
+
+diversity indices
+- include Shannon, Simpson, inverse Simpson
+
+make new_mat - intermediate step for diversity indices from vegan
+```{r}
+three_column <- new %>%
+  group_by(Sitio) %>%
+  count(`Final_ID`)
+
+# needs to be converted to data.frame!
+three_column <- data.frame(three_column)
+new_mat <- matrify(three_column)
+
+# important to check that new_mat has same order as site_data
+head(new_mat)
+head(site_data)
+```
+
+add each diversity index to site_data using vegan package
+```{r}
+# use diversity function from vegan package
+site_data <- site_data %>%
+    mutate(Shannon_Index = diversity(new_mat, index = "shannon")) %>%
+    mutate(Simpson_Index = diversity(new_mat, index = "simpson")) %>%
+    mutate(Inv_Simpson_Index = diversity(new_mat, index = "invsimpson"))
 ```
 
 
 
 
-##bring in transect vars collected during each site visit with environmental df
+
+
+
+
+
+
+## NEED TO SCALE ELEVATION VAR TOO!!!!!!!!! URGENT
 
 
 
@@ -185,6 +241,15 @@ trans_data <- trans_data %>%
 
 
 
+
+
+next steps 7/14/25
+- then calculate site-level richness, diversity indices from ranas
+- merge this with site_data
+- export!
+
+
+- then after that work on matrix which will come from new
 
 
 
@@ -242,6 +307,15 @@ local_by_trans <- local_by_trans %>%
 # filepath <- file.path(data_dir, filename)
 # write_csv(local_by_trans, file = filepath)
 ```
+
+
+
+
+
+
+
+
+
 
 
 ## NEED TO SCALE ELEVATION VAR TOO!!!!!!!!! URGENT
