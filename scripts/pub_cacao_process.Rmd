@@ -63,12 +63,75 @@ environmental <- read_csv("data/raw_data/environment_07_12_24.csv")
 
 environmental$sample_date <- as.Date(environmental$Fecha, format = "%d/%m/%y")
 
+environmental <- environmental %>%
+  mutate(year = substr(sample_date, 1, 4))
+
 # update VC-N
 environmental <- environmental %>%
   mutate(Sitio = replace(Sitio, Sitio == "VC-V", "VC-N"))
 
 environmental$Tipo[environmental$Sitio == "VC-N"] <- "N"
 ```
+
+'fill in' veg and hoja columns
+- these were measured during first site visit in each sampling round
+- if no change between subsequent visits, wrote 'same' - vast majority
+
+fill these columns based on values of previous visit
+```{r}
+environmental <- environmental %>%
+  group_by(Sitio, Fecha, Transecto, Bloque) %>%
+  mutate(Veg_fill = if_else(Veg == 'same', NA_character_, Veg),
+         Hoja_fill = if_else(Hoja =='same', NA_character_, Hoja))
+
+# this needs to also group by year
+environmental <- environmental %>%
+  group_by(Sitio, year, Transecto, Bloque) %>%
+  fill(Veg_fill, .direction = "down") %>%
+  fill(Hoja_fill, .direction = "down") %>%
+  ungroup()
+
+# now make 'Veg_fill' the only veg column to avoid confusion, same for Hoja
+environmental <- environmental %>%
+  select(-c('Veg', 'Hoja'))
+```
+
+now calculate site means for veg, hoja
+```{r}
+environmental$Veg_fill <- as.numeric(environmental$Veg_fill)
+environmental$Hoja_fill <- as.numeric(environmental$Hoja_fill)
+
+environmental <- environmental %>%
+  group_by(Sitio) %>%
+  mutate(site_mean_hoja = mean(Hoja_fill),
+         site_mean_veg = mean(Veg_fill))
+
+# now only need one row per site - cut down to 32 rows
+
+
+# remove potentially confusing columns
+```
+
+
+
+```{r}
+mutate( # calculate transect mean canopy cover
+    tran_mean_CC = mean(c_across(`CC A`:`CC D`), na.rm = TRUE))
+
+
+
+
+
+
+
+
+environment_fill_by_trans <- environment_fill %>%
+  group_by(Sitio, Transecto) %>% # add Fecha if want each transect visit
+  summarize(tran_mean_veg = mean(Veg_fill, na.rm = TRUE),
+            tran_mean_hoja = mean(Hoja_fill, na.rm = TRUE)
+            )
+```
+
 
 
 
@@ -99,55 +162,13 @@ trans_data <- trans_data %>%
   rowwise() %>%
   mutate( # calculate transect mean canopy cover
     tran_mean_CC = mean(c_across(`CC A`:`CC D`), na.rm = TRUE)) %>%
-  select(-c('CC A', 'CC B', 'CC C', 'CC D')) # now can remove CC quadrats
+  select(-c('CC A', 'CC B', 'CC C', 'CC D')) # now can remove CC quadrat cols
 ```
 
 
 
 
-bring in transect vars collected during each site visit with environmental df
-
-'fill in' veg and hoja columns
-- these were measured during first site visit in each sampling round
-- if no change between subsequent visits, wrote 'same' - vast majority
-
-fill these columns based on values of previous visit
-```{r}
-environmental <- environmental %>%
-  group_by(Sitio, Fecha, Transecto, Bloque) %>%
-  mutate(Veg_fill = if_else(Veg == 'same', NA_character_, Veg),
-         Hoja_fill = if_else(Hoja =='same', NA_character_, Hoja))
-
-environmental <- environmental %>%
-  group_by(Sitio, Transecto, Bloque) %>%
-  fill(Veg_fill, .direction = "down") %>%
-  fill(Hoja_fill, .direction = "down") %>%
-  ungroup()
-
-# now make 'Veg_fill' the only veg column to avoid confusion, same for Hoja
-environmental <- environmental %>%
-  select(-c('Veg', 'Hoja'))
-```
-
-
-now can calculate site averages for vegetation and hojarasca
-
-
-## RESUME HERE - want to confirm that these are getting calculated correctly
-```{r}
-environmental$Veg_fill <- as.numeric(environmental$Veg_fill)
-environmental$Hoja_fill <- as.numeric(environmental$Hoja_fill)
-
-test <- environmental %>%
-  group_by(Sitio) %>%
-  mutate(site_mean_hoja = mean(Hoja_fill),
-         site_mean_veg = mean(Veg_fill))
-
-
-
-
-mutate( # calculate transect mean canopy cover
-    tran_mean_CC = mean(c_across(`CC A`:`CC D`), na.rm = TRUE))
+##bring in transect vars collected during each site visit with environmental df
 
 
 
@@ -156,12 +177,13 @@ mutate( # calculate transect mean canopy cover
 
 
 
-environment_fill_by_trans <- environment_fill %>%
-  group_by(Sitio, Transecto) %>% # add Fecha if want each transect visit
-  summarize(tran_mean_veg = mean(Veg_fill, na.rm = TRUE),
-            tran_mean_hoja = mean(Hoja_fill, na.rm = TRUE)
-            )
-```
+
+
+
+
+
+
+
 
 
 
