@@ -59,7 +59,9 @@ new %>%
 ```
 
 
-#3. environmental
+#3. site_data
+
+## add environmental data
 
 environmental - environmental data collected for each sampling event
 ```{r}
@@ -123,7 +125,7 @@ environmental_site <- environmental %>%
 ```
 
 
-#4. site_data
+## create site_data
 
 site_data - this df will have all response and predictor vars for each site
 - create by merging environmental_site and site_data created from trans_data
@@ -147,8 +149,13 @@ trans_data <- trans_data %>%
 # calculate transect mean canopy cover and then remove CC cols
 trans_data <- trans_data %>%
   rowwise() %>%
-  mutate(tran_mean_CC = mean(c_across(`CC A`:`CC D`), na.rm = TRUE)) %>%
-  select(-c('CC A', 'CC B', 'CC C', 'CC D'))
+  mutate(tran_mean_CC = mean(c_across(`CC A`:`CC D`), na.rm = TRUE))
+
+# calculate site mean canopy cover and then remove unnecessary cols
+trans_data <- trans_data %>%
+  group_by(Sitio) %>%
+  mutate(site_mean_CC = mean(tran_mean_CC)) %>%
+  select(-c('CC A', 'CC B', 'CC C', 'CC D', 'tran_mean_CC'))
 ```
 
 create site_data df, only 32 rows
@@ -164,7 +171,7 @@ site_data <- merge(site_data, environmental_site, by = 'Sitio')
 ```
 
 
-#5. amphibian data
+## add amphibian data
 
 calculate site-level abundance, richness, diversity and merge with site_data
 
@@ -216,268 +223,29 @@ site_data <- site_data %>%
 ```
 
 
+## scale predictors
 
-
-
-
-
-
-
-
-## NEED TO SCALE ELEVATION VAR TOO!!!!!!!!! URGENT
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-next steps 7/14/25
-- then calculate site-level richness, diversity indices from ranas
-- merge this with site_data
-- export!
-
-
-- then after that work on matrix which will come from new
-
-
-
-now join this dataframe with local_by_trans
-- ONLY INCLUDING PLANTATIONS HERE! SO ONLY N, C
+standardize predictor variables using scale function
+- keep mean value columns as well
 ```{r}
-local_by_trans <- left_join(environment_fill_by_trans, local_by_trans,
-                                 by = c("Sitio", "Transecto"))
-
-# local_by_trans <- local_by_trans %>%
-#   select(Sitio, Tipo, Transecto, 
-#          tran_mean_veg, tran_mean_hoja, Pair,
-#          tran_mean_CC, tran_coef_var_CC,
-#          forest_cover_400, water_dist)
-
-# bin all transect measurements to categories used in Islas studies
-
-# Define the breaks (bins) and labels
-breaks <- c(0, 1, 5, 10, 25, 50, 75, 95, 100)
-labels <- c("0", "1-5", "5-10", "10-25", "25-50", "50-75", "75-95", "95-100")
-
-local_by_trans$veg_bins <- cut(local_by_trans$tran_mean_veg, 
-                                   breaks = breaks, 
-                                   labels = labels, 
-                                   include.lowest = TRUE, 
-                                   right = FALSE)
-
-local_by_trans$hoja_bins <- cut(local_by_trans$tran_mean_hoja, 
-                                   breaks = breaks, 
-                                   labels = labels, 
-                                   include.lowest = TRUE, 
-                                   right = FALSE)
-
-local_by_trans$CC_bins <- cut(local_by_trans$tran_mean_CC, 
-                                   breaks = breaks, 
-                                   labels = labels, 
-                                   include.lowest = TRUE, 
-                                   right = FALSE)
+site_data <- site_data %>%
+  mutate(veg_scaled = as.numeric(scale(site_mean_veg)),
+         hoja_scaled = as.numeric(scale(site_mean_hoja)),
+         CC_scaled = as.numeric(scale(site_mean_CC)),
+         forest_scaled = as.numeric(scale(forest_cover_400)),
+         water_scaled = as.numeric(scale(water_dist)),
+         elevation_scaled = as.numeric(scale(Elevation))
+         )
 ```
 
 
-
-
-standardize all variables for local_by_trans for multivariate models
-```{r}
-local_by_trans <- local_by_trans %>%
-  ungroup() %>% # Ungrouping to scale variables
-  mutate(tran_mean_veg_scaled = as.numeric(scale(tran_mean_veg)),
-         tran_mean_hoja_scaled = as.numeric(scale(tran_mean_hoja)),
-         tran_mean_CC_scaled = as.numeric(scale(tran_mean_CC)),
-         forest_cover_400_scaled = as.numeric(scale(forest_cover_400)),
-         water_dist_scaled = as.numeric(scale(water_dist)))
-
-# filename <- "local_by_trans_processed.csv"
-# filepath <- file.path(data_dir, filename)
-# write_csv(local_by_trans, file = filepath)
-```
-
-
-
-
-
-
-
-
-
-
-
-## NEED TO SCALE ELEVATION VAR TOO!!!!!!!!! URGENT
-
-
-
-
-# local_by_site
-easier to work at site level - removes lots of strange use cases
-- use local_by_trans df from above to calculate site-level local variables 
-```{r}
-# # format dates, create year column
-# local_by_trans$sample_date <- as.Date(local_by_trans$Fecha, format = "%d/%m/%y")
-# local_by_trans <- local_by_trans %>%
-#   mutate(year = substr(sample_date, 1, 4))
-
-# calculate site-level averages for local vars
-local_by_site <- local_by_trans %>%
-  group_by(Sitio) %>%
-  mutate(site_mean_veg = mean(tran_mean_veg),
-         site_mean_hoja = mean(tran_mean_hoja),
-         site_mean_CC = mean(tran_mean_CC)
-  )
-
-
-## TEST INCLUDE ELEVATION AS SCALED VAR! DUH
-
-# scale all vars
-local_by_site <- local_by_site %>%
-  ungroup() %>% # Ungrouping to scale variables
-  mutate(site_mean_veg_scaled = as.numeric(scale(site_mean_veg)),
-         site_mean_hoja_scaled = as.numeric(scale(site_mean_hoja)),
-         site_mean_CC_scaled = as.numeric(scale(site_mean_CC)),
-         forest_cover_400_scaled = as.numeric(scale(forest_cover_400)),
-         water_dist_scaled = as.numeric(scale(water_dist)))
-```
-
-
-
-
-
-
-
-
+## export site_data
 
 ```{r}
-site_data <- trans_data %>% 
-  filter(Transecto == 1) # just one row (transect) per site
-
-# reorder factor levels now for downstream plotting
-site_type$Tipo <- factor(site_type$Tipo, c("N", "C", "V", "B"))
-
-# make Pair a factor for glms
-# MAY NEED TO SET PAIR AS FACTOR
-#site_type$Pair <- factor(site_type$Pair)
-
-
-# # output
-# filename <- "site_type_processed.csv"
-# filepath <- file.path(data_dir, filename)
-# write_csv(site_type, file = filepath)
+filename <- "site_data_processed.csv"
+filepath <- file.path(data_dir, filename)
+write_csv(site_data, file = filepath)
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#4. cacao_paired
-
-- remove VC-V b/c not paired
-
-df for first analysis goal. compare abundance, richness, diversity b/ween pairs
-
-
-## combine richness, diversity, abundance_by_site dfs into one df for easier
-
-
-```{r}
-richness_by_site <- new %>%
-  group_by(Sitio) %>%
-  summarize(species = list(sort(unique(`Final_ID`))),
-            no_species = n_distinct(`Final_ID`))
-```
-
-
-
-just number of ind
-```{r}
-# note this is same as site_abundance above
-abundance_by_site <- new %>%
-  group_by(Sitio) %>%
-  count()
-
-# join with site_type to carry over tipo, elevation, harvested info
-abundance_by_site <- abundance_by_site %>%
-  left_join(site_type, by = "Sitio")
-
-abundance_by_site$Tipo <- factor(abundance_by_site$Tipo, c("N", "C", "V", "B"))
-
-# # output
-# filename <- "abundance_by_site_processed.csv"
-# filepath <- file.path(data_dir, filename)
-# write_csv(abundance_by_site, file = filepath)
-```
-
-
-make new_mat - intermediate step for diversity indices from vegan
-```{r}
-three_column <- new %>%
-  group_by(Sitio) %>%
-  count(`Final_ID`)
-
-# needs to be converted to data.frame!
-three_column <- data.frame(three_column)
-
-new_mat <- matrify(three_column)
-
-# Define the desired order of rows: Shade, Sun, Abandoned, Forest
-new_order <- c(1,3,5,8,19,20,22,25,27,29,30,32, # shade (n=12)
-               2,4,7,16,18,21,23,24,26,28,31, # sun (n=11)
-               9,13,14,17, # abandoned (n=4)
-               6,10,11,12,15 # forest (n=5)
-               )
-
-# Reorder rows
-new_mat <- new_mat[new_order, ]
-```
-
-
-
-diversity_by_site - each major diversity metric
-```{r}
-# use diversity function from vegan package
-diversity_by_site <- site_type %>%
-    mutate(Shannon_Index = diversity(new_mat, index = "shannon")) %>%
-    mutate(Simpson_Index = diversity(new_mat, index = "simpson")) %>%
-    mutate(Inv_Simpson_Index = diversity(new_mat, index = "invsimpson"))
-
-# # output
-# filename <- "diversity_by_site_processed.csv"
-# filepath <- file.path(data_dir, filename)
-# write_csv(diversity_by_site, file = filepath)
-```
-
 
 
 
