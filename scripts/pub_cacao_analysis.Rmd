@@ -5,6 +5,209 @@ date: "2025-07-11"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+Statistical tests and figures for cacao ranas publication
+- using processed dataframes created in pub_cacao_process script
+
+
+#1. Load
+
+```{r}
+library(tidyverse)
+library(GGally)
+library(car)
+library(DHARMa)
+library(ggResidpanel)
+library(ggeffects)
 ```
+
+```{r}
+site_data <- read_csv("data/processed_data/site_data_processed.csv")
+```
+
+
+#2. Paired sun and shade comparisons
+
+Most of the cacao sites in the study are in adjacent shade and sun pairs
+- can use paired t-tests to control for differences in location
+- compare response variables (abundance, richness, diversity)
+- note that one shade site was not paired, remove this site from this analysis
+
+
+##a. create paired_data
+
+```{r}
+# retain only paired shade and sun cacao sites
+paired_data <- site_data %>%
+  filter(Tipo == 'N' | Tipo == 'C',
+         !Sitio == 'VC-N')
+```
+
+
+##b. abundance
+
+paired t-test
+```{r}
+# restructure paired_data to wide format for abundance
+paired_abundance <- paired_data %>%
+  select(c('Tipo', 'Pair', 'n')) %>%
+  pivot_wider(names_from = Tipo, values_from = n)
+
+# run paired t-test
+t.test(paired_abundance$N, paired_abundance$C, paired = TRUE)
+```
+
+visualization
+```{r}
+ggplot(paired_data, aes(x = Tipo, y = n, fill = Tipo)) +
+  geom_boxplot()
+```
+
+
+##c. richness
+
+paired t-test
+```{r}
+# restructure paired_data to wide format for richness
+paired_richness <- paired_data %>%
+  select(c('Tipo', 'Pair', 'no_species')) %>%
+  pivot_wider(names_from = Tipo, values_from = no_species)
+
+# run paired t-test
+t.test(paired_richness$N, paired_richness$C, paired = TRUE)
+```
+
+visualization
+```{r}
+ggplot(paired_data, aes(x = Tipo, y = no_species, fill = Tipo)) +
+  geom_boxplot()
+```
+
+
+##d. diversity indices
+
+Shannon diversity paired t-test
+```{r}
+# restructure paired_data to wide format for Shannon diversity
+paired_shannon <- paired_data %>%
+  select(c('Tipo', 'Pair', 'Shannon_Index')) %>%
+  pivot_wider(names_from = Tipo, values_from = Shannon_Index)
+
+# run paired t-test
+t.test(paired_shannon$N, paired_shannon$C, paired = TRUE)
+```
+
+Shannon diversity visualization
+```{r}
+ggplot(paired_data, aes(x = Tipo, y = Shannon_Index, fill = Tipo)) +
+  geom_boxplot()
+```
+
+Simpson diversity paired t-test
+```{r}
+# restructure paired_data to wide format for Simpson diversity
+paired_simpson <- paired_data %>%
+  select(c('Tipo', 'Pair', 'Simpson_Index')) %>%
+  pivot_wider(names_from = Tipo, values_from = Simpson_Index)
+
+# run paired t-test
+t.test(paired_simpson$N, paired_simpson$C, paired = TRUE)
+```
+
+Simpson diversity visualization
+```{r}
+ggplot(paired_data, aes(x = Tipo, y = Simpson_Index, fill = Tipo)) +
+  geom_boxplot()
+```
+
+inverse Simpson diversity paired t-test
+```{r}
+# restructure paired_data to wide format for inverse Simpson diversity
+paired_inv_simpson <- paired_data %>%
+  select(c('Tipo', 'Pair', 'Inv_Simpson_Index')) %>%
+  pivot_wider(names_from = Tipo, values_from = Inv_Simpson_Index)
+
+# run paired t-test
+t.test(paired_inv_simpson$N, paired_inv_simpson$C, paired = TRUE)
+```
+
+Shannon diversity visualization
+```{r}
+ggplot(paired_data, aes(x = Tipo, y = Inv_Simpson_Index, fill = Tipo)) +
+  geom_boxplot()
+```
+
+
+#3. GLMs for each predictor variable
+
+GLMs to assess the influence of local and landscape variables on response vars
+- include all site types, site type as fixed effect
+
+response vars
+- abundance, no_species, Shannon, Simpson, Inv_Simpson
+
+predictor vars
+- tipo, scaled: veg, hoja, CC, forest, water, elevation
+
+
+##a. assess distribution of response variables
+
+histogram of each response var
+- will assume Poisson distribution first b/c count data
+- assess overdispersion and model fit during model building and adjust as needed
+```{r}
+hist(site_data$n) # assume Poisson
+hist(site_data$no_species) # assume Poisson
+hist(site_data$Shannon_Index) # approximately normal
+hist(site_data$Simpson_Index) # approximately normal
+hist(site_data$Inv_Simpson_Index) # assume Poisson
+```
+
+
+##b. assess correlation of predictor variables
+
+look at correlation matrix - high collinearity if correlation > 0.7
+```{r}
+ggpairs(site_data, columns = c(18,19,20,21,22,23))
+```
+
+canopy cover and hoja are highly correlated (0.873!) - only use canopy cover
+
+
+##c. GLM for abundance with all predictors
+
+assume Poisson distribution, don't include hoja_scaled due to colinearity
+
+predictor vars: tipo, scaled: veg, hoja, CC, forest, water, elevation
+```{r}
+glm_abundance <- glm(n ~ Tipo + veg_scaled + 
+                       CC_scaled + forest_scaled + 
+                       water_scaled + elevation_scaled, 
+                   data = site_data,
+                   family = poisson)
+summary(glm_abundance)
+```
+
+likelihood ratio tests
+```{r}
+Anova(glm_abundance)
+```
+
+look at residual, effects plots
+```{r}
+sim_res_model <- simulateResiduals(fittedModel = glm_abundance)
+plot(sim_res_model)
+
+resid_panel(glm_abundance, plots = 'resid', smoother = TRUE)
+
+plot(ggpredict(glm_abundance, terms = c("Tipo", "elevation_scaled")))
+```
+
+
+
+
+
+
+
+
+
+

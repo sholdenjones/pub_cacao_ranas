@@ -242,9 +242,9 @@ site_data <- site_data %>%
 ## export site_data
 
 ```{r}
-filename <- "site_data_processed.csv"
-filepath <- file.path(data_dir, filename)
-write_csv(site_data, file = filepath)
+# filename <- "site_data_processed.csv"
+# filepath <- file.path(data_dir, filename)
+# write_csv(site_data, file = filepath)
 ```
 
 
