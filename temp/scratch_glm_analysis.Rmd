@@ -1,142 +1,12 @@
 ---
-title: "pub_cacao_analysis"
+title: "scrap_working_glm stuff"
 author: "Holden Jones"
-date: "2025-07-11"
+date: "2025-07-16"
 output: html_document
 ---
 
-Statistical tests and figures for cacao ranas publication
-- using processed dataframes created in pub_cacao_process script
-
-
-#1. Load
-
-```{r}
-library(tidyverse)
-library(GGally)
-library(car)
-library(DHARMa)
-library(ggResidpanel)
-library(ggeffects)
-library(MuMIn)
-library(MASS)
-```
-
-```{r}
-site_data <- read_csv("data/processed_data/site_data_processed.csv")
-```
-
-
-#2. Paired sun and shade comparisons
-
-Most of the cacao sites in the study are in adjacent shade and sun pairs
-- can use paired t-tests to control for differences in location
-- compare response variables (abundance, richness, diversity)
-- note that one shade site was not paired, remove this site from this analysis
-
-
-##a. create paired_data
-
-```{r}
-# retain only paired shade and sun cacao sites
-paired_data <- site_data %>%
-  filter(Tipo == 'N' | Tipo == 'C',
-         !Sitio == 'VC-N')
-```
-
-
-##b. abundance
-
-paired t-test
-```{r}
-# restructure paired_data to wide format for abundance
-paired_abundance <- paired_data %>%
-  select(c('Tipo', 'Pair', 'n')) %>%
-  pivot_wider(names_from = Tipo, values_from = n)
-
-# run paired t-test
-t.test(paired_abundance$N, paired_abundance$C, paired = TRUE)
-```
-
-visualization
-```{r}
-ggplot(paired_data, aes(x = Tipo, y = n, fill = Tipo)) +
-  geom_boxplot()
-```
-
-
-##c. richness
-
-paired t-test
-```{r}
-# restructure paired_data to wide format for richness
-paired_richness <- paired_data %>%
-  select(c('Tipo', 'Pair', 'no_species')) %>%
-  pivot_wider(names_from = Tipo, values_from = no_species)
-
-# run paired t-test
-t.test(paired_richness$N, paired_richness$C, paired = TRUE)
-```
-
-visualization
-```{r}
-ggplot(paired_data, aes(x = Tipo, y = no_species, fill = Tipo)) +
-  geom_boxplot()
-```
-
-
-##d. diversity indices
-
-Shannon diversity paired t-test
-```{r}
-# restructure paired_data to wide format for Shannon diversity
-paired_shannon <- paired_data %>%
-  select(c('Tipo', 'Pair', 'Shannon_Index')) %>%
-  pivot_wider(names_from = Tipo, values_from = Shannon_Index)
-
-# run paired t-test
-t.test(paired_shannon$N, paired_shannon$C, paired = TRUE)
-```
-
-Shannon diversity visualization
-```{r}
-ggplot(paired_data, aes(x = Tipo, y = Shannon_Index, fill = Tipo)) +
-  geom_boxplot()
-```
-
-Simpson diversity paired t-test
-```{r}
-# restructure paired_data to wide format for Simpson diversity
-paired_simpson <- paired_data %>%
-  select(c('Tipo', 'Pair', 'Simpson_Index')) %>%
-  pivot_wider(names_from = Tipo, values_from = Simpson_Index)
-
-# run paired t-test
-t.test(paired_simpson$N, paired_simpson$C, paired = TRUE)
-```
-
-Simpson diversity visualization
-```{r}
-ggplot(paired_data, aes(x = Tipo, y = Simpson_Index, fill = Tipo)) +
-  geom_boxplot()
-```
-
-inverse Simpson diversity paired t-test
-```{r}
-# restructure paired_data to wide format for inverse Simpson diversity
-paired_inv_simpson <- paired_data %>%
-  select(c('Tipo', 'Pair', 'Inv_Simpson_Index')) %>%
-  pivot_wider(names_from = Tipo, values_from = Inv_Simpson_Index)
-
-# run paired t-test
-t.test(paired_inv_simpson$N, paired_inv_simpson$C, paired = TRUE)
-```
-
-Shannon diversity visualization
-```{r}
-ggplot(paired_data, aes(x = Tipo, y = Inv_Simpson_Index, fill = Tipo)) +
-  geom_boxplot()
-```
+## WEIRD ERROR EARLIER IN pub_cacao_analysis with select function
+- saving this code here which was in progress
 
 
 #3. GLMs for each predictor variable
@@ -149,6 +19,13 @@ response vars
 
 predictor vars
 - tipo, scaled: veg, hoja, CC, forest, water, elevation
+
+load packages - not loaded above b/c disrupting select function
+```{r}
+library(MuMIn)
+library(MASS)
+```
+
 
 
 ##a. assess distribution of response variables
@@ -303,7 +180,43 @@ look at residual, effects plots
 
 same process as above except using richness as response variable here
 
+start with Poisson b/c count data
+```{r}
+# full abundance model with all predictors
+glm_full_richness <- glm(no_species ~ Tipo + veg_scaled + CC_scaled + 
+                            forest_scaled + water_scaled + elevation_scaled,
+                       data = site_data,
+                       family = poisson)
+```
 
+use dredge to run model selection - limit to max of three predictors in a model
+```{r}
+# make sure na.action is set globally for dredge
+options(na.action = "na.fail")
+
+# run dredge to get all possible model combinations
+richness_model_set <- dredge(glm_full_richness, m.lim = c(1,3))
+
+# view top models by AIC
+head(richness_model_set)
+
+# get the best model (lowest AICc)
+best_richness_model <- get.models(richness_model_set, subset = 1)[[1]]
+
+# summary of the best model
+summary(best_richness_model)
+
+# assess multicollinearity
+vif(glm_full_richness)
+vif(best_richness_model)
+
+# assess how best model fits with DHARMa package
+simulationOutput <- simulateResiduals(fittedModel = best_richness_model)
+plot(simulationOutput)
+
+testDispersion(simulationOutput)
+testZeroInflation(simulationOutput)
+```
 
 
 
