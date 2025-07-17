@@ -185,9 +185,31 @@ canopy cover and hoja are highly correlated (0.873!) - only use canopy cover
 
 
 
-## plot variable relationships
-```{r}
+## plot variable relationships with abundance
 
+
+glm.nb(n ~ Tipo + veg_scaled + CC_scaled + forest_scaled + 
+                       water_scaled + elevation_scaled, 
+                       data = site_data)
+                       
+```{r}
+ggplot(site_data, aes(x = Tipo, y = n)) +
+  geom_boxplot()
+
+ggplot(site_data, aes(x = veg_scaled, y = n)) +
+  geom_point()
+
+ggplot(site_data, aes(x = CC_scaled, y = n)) +
+  geom_point()
+
+ggplot(site_data, aes(x = forest_scaled, y = n)) +
+  geom_point()
+
+ggplot(site_data, aes(x = water_scaled, y = n)) +
+  geom_point()
+
+ggplot(site_data, aes(x = elevation_scaled, y = n)) +
+  geom_point()
 ```
 
 
