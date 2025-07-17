@@ -19,7 +19,7 @@ library(DHARMa)
 library(ggResidpanel)
 library(ggeffects)
 library(MuMIn)
-library(MASS)
+library(MASS) # note that this produces masking issues for select()
 ```
 
 ```{r}
@@ -51,7 +51,7 @@ paired t-test
 ```{r}
 # restructure paired_data to wide format for abundance
 paired_abundance <- paired_data %>%
-  select(c('Tipo', 'Pair', 'n')) %>%
+  dplyr::select(c('Tipo', 'Pair', 'n')) %>%
   pivot_wider(names_from = Tipo, values_from = n)
 
 # run paired t-test
@@ -71,7 +71,7 @@ paired t-test
 ```{r}
 # restructure paired_data to wide format for richness
 paired_richness <- paired_data %>%
-  select(c('Tipo', 'Pair', 'no_species')) %>%
+  dplyr::select(c('Tipo', 'Pair', 'no_species')) %>%
   pivot_wider(names_from = Tipo, values_from = no_species)
 
 # run paired t-test
@@ -91,7 +91,7 @@ Shannon diversity paired t-test
 ```{r}
 # restructure paired_data to wide format for Shannon diversity
 paired_shannon <- paired_data %>%
-  select(c('Tipo', 'Pair', 'Shannon_Index')) %>%
+  dplyr::select(c('Tipo', 'Pair', 'Shannon_Index')) %>%
   pivot_wider(names_from = Tipo, values_from = Shannon_Index)
 
 # run paired t-test
@@ -108,7 +108,7 @@ Simpson diversity paired t-test
 ```{r}
 # restructure paired_data to wide format for Simpson diversity
 paired_simpson <- paired_data %>%
-  select(c('Tipo', 'Pair', 'Simpson_Index')) %>%
+  dplyr::select(c('Tipo', 'Pair', 'Simpson_Index')) %>%
   pivot_wider(names_from = Tipo, values_from = Simpson_Index)
 
 # run paired t-test
@@ -125,7 +125,7 @@ inverse Simpson diversity paired t-test
 ```{r}
 # restructure paired_data to wide format for inverse Simpson diversity
 paired_inv_simpson <- paired_data %>%
-  select(c('Tipo', 'Pair', 'Inv_Simpson_Index')) %>%
+  dplyr::select(c('Tipo', 'Pair', 'Inv_Simpson_Index')) %>%
   pivot_wider(names_from = Tipo, values_from = Inv_Simpson_Index)
 
 # run paired t-test
