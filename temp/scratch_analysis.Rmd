@@ -53,3 +53,49 @@ full Poisson glm for abundance
 
 
 
+### negative binomial
+Poisson looked good for richness - but still check out negative binomial to compare
+
+full negative binomial glm.nb for richness
+```{r}
+glm_full_richness <- glm.nb(no_species ~ Tipo + veg_scaled + CC_scaled + forest_scaled + 
+                       water_scaled + elevation_scaled, 
+                       data = site_data)
+#Warning in theta.ml(Y, mu, sum(w), w, limit = control$maxit, trace = control$trace >  :iteration limit reached
+```
+
+use dredge to run model selection - limit to max of three predictors in a model
+```{r}
+# make sure na.action is set globally for dredge
+options(na.action = "na.fail")  
+
+# run dredge to get all possible model combinations - test restricting or not
+richness_model_set <- dredge(glm_full_richness, m.lim = c(1,3))
+
+# view top models by AIC
+head(richness_model_set)
+
+# get the best model (lowest AICc)
+best_richness_model <- get.models(richness_model_set, subset = 1)[[1]]
+
+# summary of the best model
+summary(best_richness_model)
+
+# assess multicollinearity
+vif(glm_full_richness)
+# vif(best_richness_model) # contains fewer than two terms
+
+# assess how best model fits with DHARMa package
+simulationOutput <- simulateResiduals(fittedModel = best_richness_model)
+plot(simulationOutput)
+
+testDispersion(simulationOutput)
+testZeroInflation(simulationOutput)
+
+# assess how full model fits with DHARMa package
+simulationOutput <- simulateResiduals(fittedModel = glm_full_richness)
+plot(simulationOutput) # combined adjusted quantile test significant
+
+testDispersion(simulationOutput)
+testZeroInflation(simulationOutput)
+```
