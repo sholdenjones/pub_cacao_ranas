@@ -99,3 +99,93 @@ plot(simulationOutput) # combined adjusted quantile test significant
 testDispersion(simulationOutput)
 testZeroInflation(simulationOutput)
 ```
+
+
+
+
+
+
+## figures
+
+
+
+
+
+## publication level visualization - working
+
+```{r}
+# # plot Shannon diversity between paired sites using palet, my_theme
+# plot_paired_shannon <- ggplot(paired_data, 
+#                                      aes(x = Tipo, y = Shannon_Index, fill = Tipo)) +
+#   geom_boxplot() +
+#   scale_fill_manual(values = pal) + 
+#   scale_x_discrete(labels = c(paired_site_labels)) +
+#   my_theme() + 
+#   labs(x = "Cacao type",
+#        y = "Shannon Index")
+# plot_paired_shannon
+# #ggsave("output/plot_paired_shannon.png", width = 10, height = 10)
+```
+
+
+
+
+
+
+
+## publication level visualization - working
+
+```{r}
+# plot Simpson diversity between paired sites using palet, my_theme
+# plot_paired_simpson <- ggplot(paired_data, 
+#                                      aes(x = Tipo, y = Simpson_Index, fill = Tipo)) +
+#   geom_boxplot() +
+#   scale_fill_manual(values = pal) + 
+#   scale_x_discrete(labels = c(paired_site_labels)) +
+#   my_theme() +
+#   labs(x = "Cacao type",
+#        y = "Simpson Index") + 
+#   annotate("text", x = 1.5, y = max(paired_data$Simpson_Index, na.rm = TRUE) * 1.05, 
+#            label = "ns", size = 6)
+# 
+# plot_paired_simpson
+#ggsave("output/plot_paired_simpson.png", width = 10, height = 10)
+
+
+## UNSURE IF THIS DOES ANYTHING
+# plot_paired_simpson <- plot_paired_simpson +
+#   theme(
+#     axis.title.y = element_text(
+#       margin = margin(t = 200),  # increase this to nudge downward
+#       size = 22,
+#       color = "gray25"
+#     )
+#   )
+# plot_paired_simpson
+```
+
+
+
+
+
+
+## publication level visualization - working
+
+```{r}
+# plot abundance between paired sites using palet, my_theme
+plot_paired_abundance <- ggplot(paired_data, 
+                                     aes(x = Tipo, y = n, fill = Tipo)) +
+  geom_boxplot() +
+  scale_fill_manual(values = pal) + # order needs to match factor levels above
+  scale_x_discrete(labels = c(paired_site_labels)) +
+  my_theme() + 
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+  labs(y = "Abundance")
+
+
+
+plot_paired_abundance
+#ggsave("output/plot_paired_abundance.png", width = 10, height = 10)
+```

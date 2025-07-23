@@ -16,6 +16,7 @@ library(tidyverse)
 library(RColorBrewer)
 library(GGally)
 library(car)
+library(ggpubr)
 library(DHARMa)
 library(ggResidpanel)
 library(ggeffects)
@@ -85,45 +86,30 @@ paired_abundance <- paired_data %>%
 t.test(paired_abundance$N, paired_abundance$C, paired = TRUE)
 ```
 
-visualization
+
+
+
+## add letters of sig
 ```{r}
-ggplot(paired_data, aes(x = Tipo, y = n, fill = Tipo)) +
-  geom_boxplot()
-```
-
-
-## publication level visualization - working
-
-```{r}
-# plot species richness between paired sites using palet, my_theme
 plot_paired_abundance <- ggplot(paired_data, 
-                                     aes(x = Tipo, y = n, fill = Tipo)) +
+                                aes(x = Tipo, y = n, fill = Tipo)) +
   geom_boxplot() +
-  scale_fill_manual(values = pal) + # order needs to match factor levels above
+  scale_fill_manual(values = pal) +
   scale_x_discrete(labels = c(paired_site_labels)) +
-  my_theme() + 
-  theme(axis.title.x=element_blank(),
-        #axis.text.x=element_blank(),
-        axis.ticks.x=element_blank())
-  labs(x = "Cacao type",
-       y = "Abundance")
+  my_theme() +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) +
+  labs(y = "Abundance") +
+  annotate("text", x = 1.5, y = max(paired_data$n, na.rm = TRUE) * .7, 
+           label = "ns", size = 6)
 plot_paired_abundance
-#ggsave("output/plot_paired_abundance.png", width = 10, height = 10)
-
-# below using ggarrange to align multiple figs - don't want to repeat axis labels
-# plot_richness_by_site_cacao_arrange <- ggplot(richness_by_site_cacao, 
-#                                      aes(x = Tipo, y = no_species, fill = Tipo)) +
-#   geom_boxplot() +
-#   scale_fill_manual(values = pal) + 
-#   scale_y_continuous(limits = c(2, 10)) +
-#   scale_x_discrete(labels = c(site_labels)) +
-#   my_theme() + 
-#   theme(axis.title.x=element_blank(),
-#         #axis.text.x=element_blank(),
-#         axis.ticks.x=element_blank()) +
-#   labs(y = "Richness")
-# plot_richness_by_site_cacao_arrange
 ```
+
+
+
+
+
 
 
 
@@ -149,11 +135,7 @@ paired_richness <- paired_data %>%
 t.test(paired_richness$N, paired_richness$C, paired = TRUE)
 ```
 
-visualization
-```{r}
-ggplot(paired_data, aes(x = Tipo, y = no_species, fill = Tipo)) +
-  geom_boxplot()
-```
+
 
 
 
@@ -168,8 +150,13 @@ plot_paired_richness <- ggplot(paired_data,
   scale_fill_manual(values = pal) + 
   scale_x_discrete(labels = c(paired_site_labels)) +
   my_theme() + 
-  labs(x = "Cacao type",
-       y = "Richness")
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+  labs(y = "Richness") +
+  annotate("text", x = 1.5, y = max(paired_data$no_species, na.rm = TRUE) * .7, 
+           label = "ns", size = 6)
+
 plot_paired_richness
 #ggsave("output/plot_paired_abundance.png", width = 10, height = 10)
 ```
@@ -192,29 +179,6 @@ paired_shannon <- paired_data %>%
 t.test(paired_shannon$N, paired_shannon$C, paired = TRUE)
 ```
 
-Shannon diversity visualization
-```{r}
-ggplot(paired_data, aes(x = Tipo, y = Shannon_Index, fill = Tipo)) +
-  geom_boxplot()
-```
-
-
-## publication level visualization - working
-
-```{r}
-# plot Shannon diversity between paired sites using palet, my_theme
-plot_paired_shannon <- ggplot(paired_data, 
-                                     aes(x = Tipo, y = Shannon_Index, fill = Tipo)) +
-  geom_boxplot() +
-  scale_fill_manual(values = pal) + 
-  scale_x_discrete(labels = c(paired_site_labels)) +
-  my_theme() + 
-  labs(x = "Cacao type",
-       y = "Shannon Index")
-plot_paired_shannon
-#ggsave("output/plot_paired_shannon.png", width = 10, height = 10)
-```
-
 
 Simpson diversity paired t-test
 ```{r}
@@ -227,54 +191,57 @@ paired_simpson <- paired_data %>%
 t.test(paired_simpson$N, paired_simpson$C, paired = TRUE)
 ```
 
-Simpson diversity visualization
-```{r}
-ggplot(paired_data, aes(x = Tipo, y = Simpson_Index, fill = Tipo)) +
-  geom_boxplot()
-```
 
 
+## publication level visualization - working
 
 ```{r}
-# plot Simpson diversity between paired sites using palet, my_theme
 plot_paired_simpson <- ggplot(paired_data, 
-                                     aes(x = Tipo, y = Simpson_Index, fill = Tipo)) +
+                              aes(x = Tipo, y = Simpson_Index, fill = Tipo)) +
   geom_boxplot() +
   scale_fill_manual(values = pal) + 
   scale_x_discrete(labels = c(paired_site_labels)) +
-  my_theme() + 
+  my_theme() +
+  theme(
+    axis.title.y = element_text(
+      margin = margin(t = 25), # need to specify y axis text location
+      size = 22,
+      color = "gray25"
+    )
+  ) +
   labs(x = "Cacao type",
-       y = "Shannon Index")
-plot_paired_simpson
-#ggsave("output/plot_paired_simpson.png", width = 10, height = 10)
+       y = "Simpson\nIndex") +
+  annotate("text", x = 1.5, y = max(paired_data$Simpson_Index, na.rm = TRUE) * .7, 
+           label = "ns", size = 6)
+
 ```
 
 
 
 
-## maybe remove inverse simpson here
-
-inverse Simpson diversity paired t-test
-```{r}
-# restructure paired_data to wide format for inverse Simpson diversity
-paired_inv_simpson <- paired_data %>%
-  dplyr::select(c('Tipo', 'Pair', 'Inv_Simpson_Index')) %>%
-  pivot_wider(names_from = Tipo, values_from = Inv_Simpson_Index)
-
-# run paired t-test
-t.test(paired_inv_simpson$N, paired_inv_simpson$C, paired = TRUE)
-```
-
-inverse Simpson diversity visualization
-```{r}
-ggplot(paired_data, aes(x = Tipo, y = Inv_Simpson_Index, fill = Tipo)) +
-  geom_boxplot()
-```
 
 
+
+
+
+## WORKING
 
 ##e. arrange figures for publication
 
+```{r}
+plot_paired_arrange <- ggarrange(
+  plot_paired_abundance,
+  plot_paired_richness,
+  plot_paired_simpson,
+  labels = c("a", "b", "c"),
+  ncol = 1, nrow = 3,
+  align = "v",    # vertical alignment of axis lines
+  label.x = 0.001,
+  label.y = .18,
+  font.label = list(size = 20, face = "bold")
+)
+plot_paired_arrange
+```
 
 
 
