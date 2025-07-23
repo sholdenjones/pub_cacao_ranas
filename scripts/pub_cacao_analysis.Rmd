@@ -13,6 +13,7 @@ Statistical tests and figures for cacao ranas publication
 
 ```{r}
 library(tidyverse)
+library(RColorBrewer)
 library(GGally)
 library(car)
 library(DHARMa)
@@ -24,6 +25,29 @@ library(MASS) # note that this produces masking issues for select()
 
 ```{r}
 site_data <- read_csv("data/processed_data/site_data_processed.csv")
+
+# reorder factor levels for plotting
+site_data$Tipo <- factor(site_data$Tipo,
+                         c("N", "C", "V", "B"))
+```
+
+define a consistent palet, labels, and theme to be used in figures
+```{r}
+# palet for comparisons of all 4 site types
+pal <- brewer.pal(4, "BrBG")
+
+# set a theme for ggplots
+my_theme <- function() {
+  theme_minimal() + 
+   theme(legend.position = "none",
+        plot.background = element_rect("white"),
+        panel.background = element_rect("white"),
+        panel.grid = element_line("grey90"),
+        axis.line = element_line("gray25"),
+        axis.text = element_text(size = 16, color = "gray25"),
+        axis.title = element_text(size = 22, color = "gray25"),
+        legend.text = element_text(size = 16))
+}
 ```
 
 
@@ -42,6 +66,9 @@ Most of the cacao sites in the study are in adjacent shade and sun pairs
 paired_data <- site_data %>%
   filter(Tipo == 'N' | Tipo == 'C',
          !Sitio == 'VC-N')
+
+# site labels for paired visualizations
+paired_site_labels <-  c("Shade \n (n = 11)", "Sun \n (n = 11)")
 ```
 
 
@@ -65,6 +92,50 @@ ggplot(paired_data, aes(x = Tipo, y = n, fill = Tipo)) +
 ```
 
 
+## publication level visualization - working
+
+```{r}
+# plot species richness between paired sites using palet, my_theme
+plot_paired_abundance <- ggplot(paired_data, 
+                                     aes(x = Tipo, y = n, fill = Tipo)) +
+  geom_boxplot() +
+  scale_fill_manual(values = pal) + # order needs to match factor levels above
+  scale_x_discrete(labels = c(paired_site_labels)) +
+  my_theme() + 
+  theme(axis.title.x=element_blank(),
+        #axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+  labs(x = "Cacao type",
+       y = "Abundance")
+plot_paired_abundance
+#ggsave("output/plot_paired_abundance.png", width = 10, height = 10)
+
+# below using ggarrange to align multiple figs - don't want to repeat axis labels
+# plot_richness_by_site_cacao_arrange <- ggplot(richness_by_site_cacao, 
+#                                      aes(x = Tipo, y = no_species, fill = Tipo)) +
+#   geom_boxplot() +
+#   scale_fill_manual(values = pal) + 
+#   scale_y_continuous(limits = c(2, 10)) +
+#   scale_x_discrete(labels = c(site_labels)) +
+#   my_theme() + 
+#   theme(axis.title.x=element_blank(),
+#         #axis.text.x=element_blank(),
+#         axis.ticks.x=element_blank()) +
+#   labs(y = "Richness")
+# plot_richness_by_site_cacao_arrange
+```
+
+
+
+
+
+
+
+
+
+
+
+
 ##c. richness
 
 paired t-test
@@ -83,6 +154,29 @@ visualization
 ggplot(paired_data, aes(x = Tipo, y = no_species, fill = Tipo)) +
   geom_boxplot()
 ```
+
+
+
+
+## publication level visualization - working
+
+```{r}
+# plot richness between paired sites using palet, my_theme
+plot_paired_richness <- ggplot(paired_data, 
+                                     aes(x = Tipo, y = no_species, fill = Tipo)) +
+  geom_boxplot() +
+  scale_fill_manual(values = pal) + 
+  scale_x_discrete(labels = c(paired_site_labels)) +
+  my_theme() + 
+  labs(x = "Cacao type",
+       y = "Richness")
+plot_paired_richness
+#ggsave("output/plot_paired_abundance.png", width = 10, height = 10)
+```
+
+
+
+
 
 
 ##d. diversity indices
@@ -104,6 +198,24 @@ ggplot(paired_data, aes(x = Tipo, y = Shannon_Index, fill = Tipo)) +
   geom_boxplot()
 ```
 
+
+## publication level visualization - working
+
+```{r}
+# plot Shannon diversity between paired sites using palet, my_theme
+plot_paired_shannon <- ggplot(paired_data, 
+                                     aes(x = Tipo, y = Shannon_Index, fill = Tipo)) +
+  geom_boxplot() +
+  scale_fill_manual(values = pal) + 
+  scale_x_discrete(labels = c(paired_site_labels)) +
+  my_theme() + 
+  labs(x = "Cacao type",
+       y = "Shannon Index")
+plot_paired_shannon
+#ggsave("output/plot_paired_shannon.png", width = 10, height = 10)
+```
+
+
 Simpson diversity paired t-test
 ```{r}
 # restructure paired_data to wide format for Simpson diversity
@@ -121,6 +233,27 @@ ggplot(paired_data, aes(x = Tipo, y = Simpson_Index, fill = Tipo)) +
   geom_boxplot()
 ```
 
+
+
+```{r}
+# plot Simpson diversity between paired sites using palet, my_theme
+plot_paired_simpson <- ggplot(paired_data, 
+                                     aes(x = Tipo, y = Simpson_Index, fill = Tipo)) +
+  geom_boxplot() +
+  scale_fill_manual(values = pal) + 
+  scale_x_discrete(labels = c(paired_site_labels)) +
+  my_theme() + 
+  labs(x = "Cacao type",
+       y = "Shannon Index")
+plot_paired_simpson
+#ggsave("output/plot_paired_simpson.png", width = 10, height = 10)
+```
+
+
+
+
+## maybe remove inverse simpson here
+
 inverse Simpson diversity paired t-test
 ```{r}
 # restructure paired_data to wide format for inverse Simpson diversity
@@ -132,11 +265,21 @@ paired_inv_simpson <- paired_data %>%
 t.test(paired_inv_simpson$N, paired_inv_simpson$C, paired = TRUE)
 ```
 
-Shannon diversity visualization
+inverse Simpson diversity visualization
 ```{r}
 ggplot(paired_data, aes(x = Tipo, y = Inv_Simpson_Index, fill = Tipo)) +
   geom_boxplot()
 ```
+
+
+
+##e. arrange figures for publication
+
+
+
+
+
+
 
 
 #3. GLMs for each predictor variable
@@ -440,13 +583,6 @@ best model:
 - contains both elevation_scaled and Tipo
 - elevation has significant negative effect on diversity
 - bosque has significantly higher Simpson than all other landuse types
-
-
-
-
-## could also do inverse simpson - continue here
-
-
 
 
 
