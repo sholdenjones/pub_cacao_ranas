@@ -201,8 +201,8 @@ plot_paired_arrange <- ggarrange(
   labels = c("a", "b", "c"),
   ncol = 1, nrow = 3,
   align = "v",    # vertical alignment of axis lines
-  label.x = 0.001,
-  label.y = .18,
+  label.x = 0.005,
+  label.y = .15,
   font.label = list(size = 20, face = "bold")
 )
 
