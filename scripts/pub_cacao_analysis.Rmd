@@ -87,41 +87,6 @@ t.test(paired_abundance$N, paired_abundance$C, paired = TRUE)
 ```
 
 
-
-
-## add letters of sig
-```{r}
-plot_paired_abundance <- ggplot(paired_data, 
-                                aes(x = Tipo, y = n, fill = Tipo)) +
-  geom_boxplot() +
-  scale_fill_manual(values = pal) +
-  scale_x_discrete(labels = c(paired_site_labels)) +
-  my_theme() +
-  theme(axis.title.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank()) +
-  labs(y = "Abundance") +
-  annotate("text", x = 1.5, y = max(paired_data$n, na.rm = TRUE) * .7, 
-           label = "ns", size = 6)
-plot_paired_abundance
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ##c. richness
 
 paired t-test
@@ -134,36 +99,6 @@ paired_richness <- paired_data %>%
 # run paired t-test
 t.test(paired_richness$N, paired_richness$C, paired = TRUE)
 ```
-
-
-
-
-
-
-## publication level visualization - working
-
-```{r}
-# plot richness between paired sites using palet, my_theme
-plot_paired_richness <- ggplot(paired_data, 
-                                     aes(x = Tipo, y = no_species, fill = Tipo)) +
-  geom_boxplot() +
-  scale_fill_manual(values = pal) + 
-  scale_x_discrete(labels = c(paired_site_labels)) +
-  my_theme() + 
-  theme(axis.title.x=element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x=element_blank()) +
-  labs(y = "Richness") +
-  annotate("text", x = 1.5, y = max(paired_data$no_species, na.rm = TRUE) * .7, 
-           label = "ns", size = 6)
-
-plot_paired_richness
-#ggsave("output/plot_paired_abundance.png", width = 10, height = 10)
-```
-
-
-
-
 
 
 ##d. diversity indices
@@ -179,7 +114,6 @@ paired_shannon <- paired_data %>%
 t.test(paired_shannon$N, paired_shannon$C, paired = TRUE)
 ```
 
-
 Simpson diversity paired t-test
 ```{r}
 # restructure paired_data to wide format for Simpson diversity
@@ -192,10 +126,50 @@ t.test(paired_simpson$N, paired_simpson$C, paired = TRUE)
 ```
 
 
+##e. make arranged paired figure
 
-## publication level visualization - working
-
+paired abundance figure
 ```{r}
+plot_paired_abundance <- ggplot(paired_data, 
+                                aes(x = Tipo, y = n, fill = Tipo)) +
+  geom_boxplot() +
+  scale_fill_manual(values = pal) +
+  scale_x_discrete(labels = c(paired_site_labels)) +
+  my_theme() +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) +
+  labs(y = "Abundance") +
+  annotate("text", x = 1.5, y = max(paired_data$n, na.rm = TRUE) * .7, 
+           label = "ns", size = 6)
+
+plot_paired_abundance
+#ggsave("output/plot_paired_abundance.png", width = 10, height = 10)
+```
+
+paired richness figure
+```{r}
+# plot richness between paired sites using palet, my_theme
+plot_paired_richness <- ggplot(paired_data, 
+                                     aes(x = Tipo, y = no_species, fill = Tipo)) +
+  geom_boxplot() +
+  scale_fill_manual(values = pal) + 
+  scale_x_discrete(labels = c(paired_site_labels)) +
+  my_theme() + 
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+  labs(y = "Richness") +
+  annotate("text", x = 1.5, y = max(paired_data$no_species, na.rm = TRUE) * .85, 
+           label = "ns", size = 6)
+
+plot_paired_richness
+#ggsave("output/plot_paired_richness.png", width = 10, height = 10)
+```
+
+paired simpson figure
+```{r}
+# plot Simpson Index between paired sites, labels different b/c bottom panel
 plot_paired_simpson <- ggplot(paired_data, 
                               aes(x = Tipo, y = Simpson_Index, fill = Tipo)) +
   geom_boxplot() +
@@ -214,20 +188,11 @@ plot_paired_simpson <- ggplot(paired_data,
   annotate("text", x = 1.5, y = max(paired_data$Simpson_Index, na.rm = TRUE) * .7, 
            label = "ns", size = 6)
 
+plot_paired_simpson
+#ggsave("output/plot_paired_simpson.png", width = 10, height = 10)
 ```
 
-
-
-
-
-
-
-
-
-## WORKING
-
-##e. arrange figures for publication
-
+arrange all figures for publication
 ```{r}
 plot_paired_arrange <- ggarrange(
   plot_paired_abundance,
@@ -240,7 +205,9 @@ plot_paired_arrange <- ggarrange(
   label.y = .18,
   font.label = list(size = 20, face = "bold")
 )
+
 plot_paired_arrange
+#ggsave("output/plot_paired_arrange.png", width = 10, height = 10)
 ```
 
 
