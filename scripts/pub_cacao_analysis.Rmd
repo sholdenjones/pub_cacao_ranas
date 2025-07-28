@@ -37,6 +37,20 @@ define a consistent palet, labels, and theme to be used in figures
 # palet for comparisons of all 4 site types
 pal <- brewer.pal(4, "BrBG")
 
+# # set a theme for ggplots
+# my_theme <- function() {
+#   theme_minimal() + 
+#    theme(legend.position = "none",
+#         plot.background = element_rect("white"),
+#         panel.background = element_rect("white"),
+#         panel.grid = element_line("grey90"),
+#         axis.line = element_line("gray25"),
+#         axis.text = element_text(size = 16, color = "gray25"),
+#         axis.title = element_text(size = 22, color = "gray25"),
+#         legend.text = element_text(size = 16))
+# }
+
+
 # set a theme for ggplots
 my_theme <- function() {
   theme_minimal() + 
@@ -45,10 +59,13 @@ my_theme <- function() {
         panel.background = element_rect("white"),
         panel.grid = element_line("grey90"),
         axis.line = element_line("gray25"),
-        axis.text = element_text(size = 16, color = "gray25"),
-        axis.title = element_text(size = 22, color = "gray25"),
-        legend.text = element_text(size = 16))
+        axis.text = element_text(size = 22, color = "gray25"),
+        axis.title = element_text(size = 26, color = "gray25"),
+        legend.text = element_text(size = 22))
 }
+
+
+
 ```
 
 
@@ -141,7 +158,7 @@ plot_paired_abundance <- ggplot(paired_data,
         axis.ticks.x = element_blank()) +
   labs(y = "Abundance") +
   annotate("text", x = 1.5, y = max(paired_data$n, na.rm = TRUE) * .7, 
-           label = "ns", size = 6)
+           label = "ns", size = 8)
 
 plot_paired_abundance
 #ggsave("output/plot_paired_abundance.png", width = 10, height = 10)
@@ -161,7 +178,7 @@ plot_paired_richness <- ggplot(paired_data,
         axis.ticks.x=element_blank()) +
   labs(y = "Richness") +
   annotate("text", x = 1.5, y = max(paired_data$no_species, na.rm = TRUE) * .85, 
-           label = "ns", size = 6)
+           label = "ns", size = 8)
 
 plot_paired_richness
 #ggsave("output/plot_paired_richness.png", width = 10, height = 10)
@@ -170,50 +187,44 @@ plot_paired_richness
 paired simpson figure
 ```{r}
 # plot Simpson Index between paired sites, labels different b/c bottom panel
-plot_paired_simpson <- ggplot(paired_data, 
+plot_paired_simpson <- ggplot(paired_data,
                               aes(x = Tipo, y = Simpson_Index, fill = Tipo)) +
   geom_boxplot() +
-  scale_fill_manual(values = pal) + 
+  scale_fill_manual(values = pal) +
   scale_x_discrete(labels = c(paired_site_labels)) +
   my_theme() +
-  theme(
-    axis.title.y = element_text(
-      margin = margin(t = 25), # need to specify y axis text location
-      size = 22,
-      color = "gray25"
-    )
-  ) +
+  theme(axis.title.y = element_text(margin = margin(r = 10)),
+        axis.title.x = element_text(margin = margin(t = 10))) +
   labs(x = "Cacao type",
        y = "Simpson\nIndex") +
-  annotate("text", x = 1.5, y = max(paired_data$Simpson_Index, na.rm = TRUE) * .7, 
-           label = "ns", size = 6)
+  annotate("text", x = 1.5, y = max(paired_data$Simpson_Index, na.rm = TRUE) * .7,
+           label = "ns", size = 8)
 
 plot_paired_simpson
-#ggsave("output/plot_paired_simpson.png", width = 10, height = 10)
 ```
 
 arrange all figures for publication
 ```{r}
 plot_paired_arrange <- ggarrange(
-  plot_paired_abundance,
-  plot_paired_richness,
-  plot_paired_simpson,
+  plot_paired_abundance +
+    theme(axis.title.y = element_text(hjust = 0.5),
+          plot.margin = margin(5, 5, 5, 20)),
+  plot_paired_richness +
+    theme(axis.title.y = element_text(hjust = 0.5),
+          plot.margin = margin(5, 5, 5, 20)),
+  plot_paired_simpson +
+    theme(axis.title.y = element_text(hjust = 0.35),
+          plot.margin = margin(5, 5, 10, 5)),
   labels = c("a", "b", "c"),
   ncol = 1, nrow = 3,
-  align = "v",    # vertical alignment of axis lines
+  align = "v",
   label.x = 0.005,
-  label.y = .15,
-  font.label = list(size = 20, face = "bold")
-)
+  label.y = 0.12,
+  font.label = list(size = 26, face = "bold"))
 
 plot_paired_arrange
-#ggsave("output/plot_paired_arrange.png", width = 10, height = 10)
+#ggsave("output/plot_paired_arrange.png", width = 10, height = 15)
 ```
-
-
-
-
-
 
 
 #3. GLMs for each predictor variable
