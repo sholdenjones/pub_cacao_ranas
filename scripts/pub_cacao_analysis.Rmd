@@ -30,13 +30,16 @@ site_data <- read_csv("data/processed_data/site_data_processed.csv")
 
 # reorder factor levels for plotting
 site_data$Tipo <- factor(site_data$Tipo,
-                         c("N", "C", "V", "B"))
+                         c("C", "N", "V", "B"))
 ```
 
 define a consistent palet, labels, and theme to be used in figures
 ```{r}
 # palet for comparisons of all 4 site types
 pal <- brewer.pal(4, "BrBG")
+
+# needs to match factor levels above
+pal <- c("#DFC27D", "#A6611A", "#80CDC1", "#018571")
 
 # set a theme for ggplots
 my_theme <- function() {
@@ -70,7 +73,7 @@ paired_data <- site_data %>%
          !Sitio == 'VC-N')
 
 # site labels for paired visualizations
-paired_site_labels <-  c("Shade \n (n = 11)", "Sun \n (n = 11)")
+paired_site_labels <-  c("Sun \n (n = 11)", "Shade \n (n = 11)")
 ```
 
 
@@ -345,17 +348,92 @@ confint(tukey_simpson)
 
 ##e. make arranged GLM  type figure
 
+labels for arranged type figure
+```{r}
+type_site_labels <-  c("Sun \n (n = 11)", "Shade \n (n = 11)", 
+                       "Abandoned \n (n = 4)", "Forest \n (n =5)")
+```
 
-## WORKING HERE
+abundance across site types figure
+```{r}
+plot_type_abundance <- ggplot(site_data, 
+                                aes(x = Tipo, y = n, fill = Tipo)) +
+  geom_boxplot() +
+  scale_fill_manual(values = pal) +
+  scale_x_discrete(labels = c(type_site_labels)) +
+  my_theme() +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) +
+  labs(y = "Abundance") +
+  annotate("text", x = 2.5, y = max(site_data$n, na.rm = TRUE) * .7, 
+           label = "ns", size = 8)
 
+plot_type_abundance
+#ggsave("output/plot_type_abundance.png", width = 10, height = 10)
+```
 
+richness across site types figure
+```{r}
+plot_type_richness <- ggplot(site_data, 
+                                aes(x = Tipo, y = no_species, fill = Tipo)) +
+  geom_boxplot() +
+  scale_fill_manual(values = pal) +
+  scale_x_discrete(labels = c(type_site_labels)) +
+  my_theme() +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) +
+  labs(y = "Richness") +
+  annotate("text", x = 2.5, y = max(site_data$no_species, na.rm = TRUE) * .9, 
+           label = "ns", size = 8)
 
+plot_type_richness
+#ggsave("output/plot_type_richness.png", width = 10, height = 10)
+```
 
+Simpson across site types figure
+```{r}
+# plot Simpson Index across site types, labels different b/c bottom panel
+plot_type_simpson <- ggplot(site_data,
+                              aes(x = Tipo, y = Simpson_Index, fill = Tipo)) +
+  geom_boxplot() +
+  scale_fill_manual(values = pal) +
+  scale_x_discrete(labels = c(type_site_labels)) +
+  my_theme() +
+  theme(axis.title.y = element_text(margin = margin(r = 10)),
+        axis.title.x = element_text(margin = margin(t = 10))) +
+  labs(x = "Land use type",
+       y = "Simpson\nIndex") +
+  annotate("text", x = 2.5, y = max(paired_data$Simpson_Index, na.rm = TRUE) * .8,
+           label = "ns", size = 8)
 
+plot_type_simpson
+```
 
+arrange all figures for publication
+- maybe just use this figure in the final publication
+```{r}
+plot_type_arrange <- ggarrange(
+  plot_type_abundance +
+    theme(axis.title.y = element_text(hjust = 0.5),
+          plot.margin = margin(5, 5, 5, 20)),
+  plot_type_richness +
+    theme(axis.title.y = element_text(hjust = 0.5),
+          plot.margin = margin(5, 5, 5, 20)),
+  plot_type_simpson +
+    theme(axis.title.y = element_text(hjust = 0.35),
+          plot.margin = margin(5, 5, 10, 5)),
+  labels = c("a", "b", "c"),
+  ncol = 1, nrow = 3,
+  align = "v",
+  label.x = 0.005,
+  label.y = 0.12,
+  font.label = list(size = 26, face = "bold"))
 
-
-
+plot_type_arrange
+#ggsave("output/plot_type_arrange.png", width = 10, height = 15)
+```
 
 
 #4. GLMs for each predictor variable for active cacao plantations only
