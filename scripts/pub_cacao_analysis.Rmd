@@ -22,6 +22,7 @@ library(ggResidpanel)
 library(ggeffects)
 library(MuMIn)
 library(MASS) # note that this produces masking issues for select()
+library(multcomp)
 ```
 
 ```{r}
@@ -37,20 +38,6 @@ define a consistent palet, labels, and theme to be used in figures
 # palet for comparisons of all 4 site types
 pal <- brewer.pal(4, "BrBG")
 
-# # set a theme for ggplots
-# my_theme <- function() {
-#   theme_minimal() + 
-#    theme(legend.position = "none",
-#         plot.background = element_rect("white"),
-#         panel.background = element_rect("white"),
-#         panel.grid = element_line("grey90"),
-#         axis.line = element_line("gray25"),
-#         axis.text = element_text(size = 16, color = "gray25"),
-#         axis.title = element_text(size = 22, color = "gray25"),
-#         legend.text = element_text(size = 16))
-# }
-
-
 # set a theme for ggplots
 my_theme <- function() {
   theme_minimal() + 
@@ -63,9 +50,6 @@ my_theme <- function() {
         axis.title = element_text(size = 26, color = "gray25"),
         legend.text = element_text(size = 22))
 }
-
-
-
 ```
 
 
@@ -227,7 +211,156 @@ plot_paired_arrange
 ```
 
 
-#3. GLMs for each predictor variable
+#3. GLMs with habitat type as fixed effect for each response variable
+
+Use GLMs to compare the effect of habitat type on each response variable
+- forest and abandoned plantation sites are not paired and have different 
+  sample sizes so use GLMs to more robustly compare response variables
+- then can run post-hoc test like Tukey's HSD
+
+
+##a. assess distribution of response variables
+
+assume Poisson for count data
+```{r}
+hist(site_data$n) # assume Poisson
+hist(site_data$no_species) # assume Poisson
+hist(site_data$Shannon_Index) # approximately normal
+hist(site_data$Simpson_Index) # approximately normal
+```
+
+
+##b. abundance
+
+GLM for abundance
+- Poisson model overdispersed
+- negative binomial appropriately accounts for the overdispersion
+- no significant difference, so no need for post hoc test
+```{r}
+glm_type_abundance <- glm.nb(n ~ Tipo, 
+                       data = site_data)
+summary(glm_type_abundance)
+```
+
+assess model fit
+```{r}
+# assess how model fits using DHARMa package
+simulationOutput <- simulateResiduals(fittedModel = glm_type_abundance)
+plot(simulationOutput)
+
+testDispersion(simulationOutput)
+testZeroInflation(simulationOutput)
+```
+
+
+##c. richness
+
+GLM for richness
+- assume Poisson - it is not overdispersed!
+- no significant difference, so no need for post hoc test
+```{r}
+glm_type_richness <- glm(no_species ~ Tipo,
+                         data = site_data,
+                         family = poisson)
+summary(glm_type_richness)
+```
+
+assess model fit
+```{r}
+# assess how model fits using DHARMa package
+simulationOutput <- simulateResiduals(fittedModel = glm_type_richness)
+plot(simulationOutput)
+
+testDispersion(simulationOutput)
+testZeroInflation(simulationOutput)
+```
+
+
+##d. diversity indices
+
+GLM for Shannon diversity
+- assume normal - refer to histogram above - not overdispersed!
+- significant difference - use Tukey's HSD for post-hoc test
+```{r}
+glm_type_shannon <- glm(Shannon_Index ~ Tipo,
+                         data = site_data)
+summary(glm_type_shannon)
+```
+
+assess model fit
+```{r}
+# assess how model fits using DHARMa package
+simulationOutput <- simulateResiduals(fittedModel = glm_type_shannon)
+plot(simulationOutput)
+
+testDispersion(simulationOutput)
+testZeroInflation(simulationOutput)
+```
+
+Tukey's HSD test to detect difference between site types
+- accounting for family error rate, no sig differences between site types
+```{r}
+# Tukey HSD-style pairwise comparisons
+tukey_shannon <- glht(glm_type_shannon, linfct = mcp(Tipo = "Tukey"))
+
+# View the summary of pairwise contrasts
+summary(tukey_shannon)
+
+# Confidence intervals
+confint(tukey_shannon)
+```
+
+GLM for Simpson diversity
+- assume normal - refer to histogram above - not overdispersed!
+- significant difference - use Tukey's HSD for post hoc test
+```{r}
+glm_type_simpson <- glm(Simpson_Index ~ Tipo,
+                         data = site_data)
+summary(glm_type_simpson)
+```
+
+assess model fit
+```{r}
+# assess how model fits using DHARMa package
+simulationOutput <- simulateResiduals(fittedModel = glm_type_simpson)
+plot(simulationOutput)
+
+testDispersion(simulationOutput)
+testZeroInflation(simulationOutput)
+```
+
+Tukey's HSD test to detect difference between site types
+- accounting for family error rate, no sig differences between site types
+```{r}
+# Tukey HSD-style pairwise comparisons
+tukey_simpson <- glht(glm_type_simpson, linfct = mcp(Tipo = "Tukey"))
+
+# View the summary of pairwise contrasts
+summary(tukey_simpson)
+
+# Confidence intervals
+confint(tukey_simpson)
+```
+
+
+##e. make arranged GLM  type figure
+
+
+## WORKING HERE
+
+
+
+
+
+
+
+
+
+
+
+#4. GLMs for each predictor variable for active cacao plantations only
+
+## NEED TO FILTER OUT FOREST AND ABANDONED SITES
 
 GLMs to assess the influence of local and landscape variables on response vars
 - include all site types, site type as fixed effect
