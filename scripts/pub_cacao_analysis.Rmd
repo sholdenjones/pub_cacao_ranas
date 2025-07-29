@@ -23,6 +23,7 @@ library(ggeffects)
 library(MuMIn)
 library(MASS) # note that this produces masking issues for select()
 library(multcomp)
+library(betareg)
 ```
 
 ```{r}
@@ -105,18 +106,7 @@ t.test(paired_richness$N, paired_richness$C, paired = TRUE)
 ```
 
 
-##d. diversity indices
-
-Shannon diversity paired t-test
-```{r}
-# restructure paired_data to wide format for Shannon diversity
-paired_shannon <- paired_data %>%
-  dplyr::select(c('Tipo', 'Pair', 'Shannon_Index')) %>%
-  pivot_wider(names_from = Tipo, values_from = Shannon_Index)
-
-# run paired t-test
-t.test(paired_shannon$N, paired_shannon$C, paired = TRUE)
-```
+##d. Simpson diversity
 
 Simpson diversity paired t-test
 ```{r}
@@ -214,7 +204,7 @@ plot_paired_arrange
 ```
 
 
-#3. GLMs with habitat type as fixed effect for each response variable
+#3. GLMs with habitat type as fixed effect
 
 Use GLMs to compare the effect of habitat type on each response variable
 - forest and abandoned plantation sites are not paired and have different 
@@ -228,7 +218,6 @@ assume Poisson for count data
 ```{r}
 hist(site_data$n) # assume Poisson
 hist(site_data$no_species) # assume Poisson
-hist(site_data$Shannon_Index) # approximately normal
 hist(site_data$Simpson_Index) # approximately normal
 ```
 
@@ -279,39 +268,7 @@ testZeroInflation(simulationOutput)
 ```
 
 
-##d. diversity indices
-
-GLM for Shannon diversity
-- assume normal - refer to histogram above - not overdispersed!
-- significant difference - use Tukey's HSD for post-hoc test
-```{r}
-glm_type_shannon <- glm(Shannon_Index ~ Tipo,
-                         data = site_data)
-summary(glm_type_shannon)
-```
-
-assess model fit
-```{r}
-# assess how model fits using DHARMa package
-simulationOutput <- simulateResiduals(fittedModel = glm_type_shannon)
-plot(simulationOutput)
-
-testDispersion(simulationOutput)
-testZeroInflation(simulationOutput)
-```
-
-Tukey's HSD test to detect difference between site types
-- accounting for family error rate, no sig differences between site types
-```{r}
-# Tukey HSD-style pairwise comparisons
-tukey_shannon <- glht(glm_type_shannon, linfct = mcp(Tipo = "Tukey"))
-
-# View the summary of pairwise contrasts
-summary(tukey_shannon)
-
-# Confidence intervals
-confint(tukey_shannon)
-```
+##d. Simpson diversity
 
 GLM for Simpson diversity
 - assume normal - refer to histogram above - not overdispersed!
@@ -467,8 +424,7 @@ histogram of each response var
 ```{r}
 hist(active_data$n) # assume Poisson
 hist(active_data$no_species) # assume Poisson
-hist(active_data$Shannon_Index) # approximately normal
-hist(active_data$Simpson_Index) # approximately normal
+hist(active_data$Simpson_Index) # use beta regression b/c between 0 and 1
 ```
 
 
@@ -657,228 +613,105 @@ best model:
 - null model - no terms, nothing sig.
 
 
+##f. Simpson diversity
 
-
-
-
-## WORKING BELOW HERE
-
-
-
-
-
-
-##g. GLM for Shannon diversity with all predictors
-
-
-
-
-
-## first add plots
-
-<!-- first plot variable relationships with abundance -->
-<!-- ```{r} -->
-
-<!-- ggplot(active_data, aes(x = veg_scaled, y = n)) + -->
-<!--   geom_point() + -->
-<!--   geom_smooth() -->
-
-<!-- ggplot(active_data, aes(x = CC_scaled, y = n)) + -->
-<!--   geom_point() + -->
-<!--   geom_smooth() -->
-
-<!-- ggplot(active_data, aes(x = forest_scaled, y = n)) + -->
-<!--   geom_point() + -->
-<!--   geom_smooth() -->
-
-<!-- ggplot(active_data, aes(x = water_scaled, y = n)) + -->
-<!--   geom_point() + -->
-<!--   geom_smooth() -->
-
-<!-- ggplot(active_data, aes(x = elevation_scaled, y = n)) + -->
-<!--   geom_point() + -->
-<!--   geom_smooth() -->
-<!-- ``` -->
-
-
-
-
-
-
-
-full glm for shannon with normal dist.
-- Shannon isn't count data! so don't use Poisson? non-integer values?
+first plot variable relationships with simpson
 ```{r}
-# full shannon model with all predictors
-glm_full_shannon <- glm(Shannon_Index ~ veg_scaled + CC_scaled + forest_scaled +
-                       water_scaled + elevation_scaled,
-                       data = active_data,
-                       family = gaussian) # normal distribution
-summary(glm_full_shannon)
+ggplot(active_data, aes(x = veg_scaled, y = Simpson_Index)) +
+  geom_point() +
+  geom_smooth()
+
+ggplot(active_data, aes(x = CC_scaled, y = Simpson_Index)) +
+  geom_point() +
+  geom_smooth()
+
+ggplot(active_data, aes(x = forest_scaled, y = Simpson_Index)) +
+  geom_point() +
+  geom_smooth()
+
+ggplot(active_data, aes(x = water_scaled, y = Simpson_Index)) +
+  geom_point() +
+  geom_smooth()
+
+ggplot(active_data, aes(x = elevation_scaled, y = Simpson_Index)) +
+  geom_point() +
+  geom_smooth()
 ```
 
-use dredge to run model selection - limit to max of three predictors in a model
+
+### beta regression model for simpson with all predictors
+
+- use beta regression model - response is between 0 and 1, this distribution
+  commonly used with diversity indices
+- residuals for beta regression model appear normally distributed
+- note one possibly influential outlier with Cook's distance plot
+
+- explored using normal distribution but quantile deviations detected in that model
+
+full beta regression model for Simpson
 ```{r}
-# make sure na.action is set globally for dredge
-options(na.action = "na.fail")
+glm_full_simpson <- betareg(Simpson_Index ~ veg_scaled + CC_scaled + forest_scaled + 
+                      water_scaled + elevation_scaled,
+                      data = active_data)
 
-# run dredge to get all possible model combinations
-shannon_model_set <- dredge(glm_full_shannon, m.lim = c(1,3))
-
-# view top models by AIC
-head(shannon_model_set)
-
-# get the best model (lowest AICc)
-best_shannon_model <- get.models(shannon_model_set, subset = 1)[[1]]
-
-# summary of the best model
-summary(best_shannon_model)
-
-# assess multicollinearity
-vif(glm_full_shannon)
-vif(best_shannon_model) # inflation not an issue in best model
-
-# assess how best model fits with DHARMa package
-simulationOutput <- simulateResiduals(fittedModel = best_shannon_model)
-plot(simulationOutput) # combined adjusted quantile test significant
-
-testDispersion(simulationOutput)
-testZeroInflation(simulationOutput)
-
-# assess how full model fits with DHARMa package
-simulationOutput <- simulateResiduals(fittedModel = glm_full_shannon)
-plot(simulationOutput)
-
-testDispersion(simulationOutput)
-testZeroInflation(simulationOutput)
-```
-
-normal Shannon diversity model summary
-
-full model:
-- no issues with model fit
-- nothing sig
-
-best model:
-- combined adjusted quantile test significant, no other issues with fit
-- contains elevation_scaled and forest_scaled
-- elevation sig negative effect
-- forest sig positive effect
-
-
-
-
-
-
-
-
-
-
-
-
-
-##h. GLM for Simpson diversity with all predictors
-
-
-
-## first add plots
-
-
-
-<!-- first plot variable relationships with abundance -->
-<!-- ```{r} -->
-
-<!-- ggplot(active_data, aes(x = veg_scaled, y = n)) + -->
-<!--   geom_point() + -->
-<!--   geom_smooth() -->
-
-<!-- ggplot(active_data, aes(x = CC_scaled, y = n)) + -->
-<!--   geom_point() + -->
-<!--   geom_smooth() -->
-
-<!-- ggplot(active_data, aes(x = forest_scaled, y = n)) + -->
-<!--   geom_point() + -->
-<!--   geom_smooth() -->
-
-<!-- ggplot(active_data, aes(x = water_scaled, y = n)) + -->
-<!--   geom_point() + -->
-<!--   geom_smooth() -->
-
-<!-- ggplot(active_data, aes(x = elevation_scaled, y = n)) + -->
-<!--   geom_point() + -->
-<!--   geom_smooth() -->
-<!-- ``` -->
-
-
-
-
-
-
-
-
-full glm for simpson with normal distribution
-- simpson isn't count data! so can't use Poisson distribution
-```{r}
-# full simpson model with all predictors
-glm_full_simpson <- glm(Simpson_Index ~ veg_scaled + CC_scaled + forest_scaled +
-                       water_scaled + elevation_scaled,
-                       data = active_data,
-                       family = gaussian)
 summary(glm_full_simpson)
+
+# assess full model fit - NOTE THAT DHARMA DOES NOT WORK WITH BETAREG MODELS
+plot(glm_full_simpson)
 ```
 
-use dredge to run model selection - limit to max of three predictors in a model
+use dredge to run model selection off full simpson model
 ```{r}
 # make sure na.action is set globally for dredge
-options(na.action = "na.fail")
+options(na.action = "na.fail")  
 
 # run dredge to get all possible model combinations
-simpson_model_set <- dredge(glm_full_simpson, m.lim = c(1,3))
+simpson_model_set <- dredge(glm_full_simpson)
 
 # view top models by AIC
-head(simpson_model_set)
+head(simpson_model_set, n = 10)
 
 # get the best model (lowest AICc)
 best_simpson_model <- get.models(simpson_model_set, subset = 1)[[1]]
 
-# summary of the best model
-summary(best_simpson_model) # elevation and tipo significant effect
+summary(best_simpson_model)
 
-# assess multicollinearity
-vif(glm_full_simpson)
-vif(best_simpson_model) # inflation not an issue in best model
-
-# assess how best model fits with DHARMa package
-simulationOutput <- simulateResiduals(fittedModel = best_simpson_model)
-plot(simulationOutput) # combined adjusted quantile test not significant
-
-testDispersion(simulationOutput)
-testZeroInflation(simulationOutput)
-
-# assess how full model fits with DHARMa package
-simulationOutput <- simulateResiduals(fittedModel = glm_full_simpson)
-plot(simulationOutput) 
-
-testDispersion(simulationOutput)
-testZeroInflation(simulationOutput)
+# assess best full model fit - NOTE THAT DHARMA DOES NOT WORK WITH BETAREG MODELS
+plot(best_simpson_model)
 ```
 
-normal Simpson diversity model summary
 
-full model:
-- no issues with model fit
-- Tipo sig
+##g. make AIC table
 
-best model:
-- no issues with model fit
-- contains both elevation_scaled and Tipo
-- elevation has significant negative effect on diversity
-- bosque has significantly higher Simpson than all other landuse types
+for paper present best models for each response variable
 
+select models with delta AIC <2.0, combine into one model
+- doing the rest of formatting by hand with exported csv
+```{r}
+# select top models with delta <2 for each response variable
+top_abundance_models <- as.data.frame(subset(abundance_model_set, delta < 2)) %>%
+  mutate(Response = "Abundance",
+         Distribution = "Negative binomial") %>% 
+  dplyr::select(Response, Distribution, everything())
 
+top_richness_models <- as.data.frame(subset(richness_model_set, delta < 2)) %>%
+  mutate(Response = "Richness",
+         Distribution = "Poisson") %>% 
+  dplyr::select(Response, Distribution, everything())
 
+top_simpson_models <- as.data.frame(subset(simpson_model_set, delta < 2)) %>%
+  mutate(Response = "Simpson Index",
+         Distribution = "Beta regression") %>% 
+  dplyr::select(Response, Distribution, everything())
 
+combined_model_table <- bind_rows(
+  top_abundance_models,
+  top_richness_models,
+  top_simpson_models
+)
 
-
-
+# export to csv for further formatting
+# write.csv(combined_model_table, "output/combined_model_selection_table.csv", 
+#           row.names = FALSE)
+```
 

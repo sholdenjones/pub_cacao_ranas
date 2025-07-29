@@ -189,3 +189,79 @@ plot_paired_abundance <- ggplot(paired_data,
 plot_paired_abundance
 #ggsave("output/plot_paired_abundance.png", width = 10, height = 10)
 ```
+
+
+
+
+
+
+
+## not going to include Shannon in published script
+- copy and paste here if needed can use:
+
+```{r}
+hist(site_data$Shannon_Index) # approximately normal
+
+hist(active_data$Shannon_Index) # have to scale for beta regression b/c >1
+```
+
+
+Shannon diversity paired t-test
+```{r}
+# restructure paired_data to wide format for Shannon diversity
+paired_shannon <- paired_data %>%
+  dplyr::select(c('Tipo', 'Pair', 'Shannon_Index')) %>%
+  pivot_wider(names_from = Tipo, values_from = Shannon_Index)
+
+# run paired t-test
+t.test(paired_shannon$N, paired_shannon$C, paired = TRUE)
+```
+
+
+
+
+
+
+
+
+
+
+GLM for Shannon diversity
+- assume normal - refer to histogram above - not overdispersed!
+- significant difference - use Tukey's HSD for post-hoc test
+```{r}
+glm_type_shannon <- glm(Shannon_Index ~ Tipo,
+                         data = site_data)
+summary(glm_type_shannon)
+```
+
+assess model fit
+```{r}
+# assess how model fits using DHARMa package
+simulationOutput <- simulateResiduals(fittedModel = glm_type_shannon)
+plot(simulationOutput)
+
+testDispersion(simulationOutput)
+testZeroInflation(simulationOutput)
+```
+
+Tukey's HSD test to detect difference between site types
+- accounting for family error rate, no sig differences between site types
+```{r}
+# Tukey HSD-style pairwise comparisons
+tukey_shannon <- glht(glm_type_shannon, linfct = mcp(Tipo = "Tukey"))
+
+# View the summary of pairwise contrasts
+summary(tukey_shannon)
+
+# Confidence intervals
+confint(tukey_shannon)
+```
+
+
+
+
+
+
+
+
