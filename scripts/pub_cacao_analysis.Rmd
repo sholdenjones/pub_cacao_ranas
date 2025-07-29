@@ -438,10 +438,8 @@ plot_type_arrange
 
 #4. GLMs for each predictor variable for active cacao plantations only
 
-## NEED TO FILTER OUT FOREST AND ABANDONED SITES
-
 GLMs to assess the influence of local and landscape variables on response vars
-- include all site types, site type as fixed effect
+- only for active cacao plantations, site type as fixed effect
 
 response vars
 - abundance, no_species, Shannon, Simpson, Inv_Simpson
@@ -450,54 +448,66 @@ predictor vars
 - tipo, scaled: veg, hoja, CC, forest, water, elevation
 
 
-##a. assess distribution of response variables
+##a. create active_data
+
+Only assessing impact of local and landscape variables on active plantations
+- so filter out abandoned and forest site types
+- note that this includes one more site than paired_data
+```{r}
+active_data <- site_data %>%
+  filter(Tipo == 'N' | Tipo == 'C')
+```
+
+
+
+##b. assess distribution of response variables
 
 histogram of each response var
 - will assume Poisson distribution first b/c count data
 - assess overdispersion and model fit during model building and adjust as needed
 ```{r}
-hist(site_data$n) # assume Poisson
-hist(site_data$no_species) # assume Poisson
-hist(site_data$Shannon_Index) # approximately normal
-hist(site_data$Simpson_Index) # approximately normal
-hist(site_data$Inv_Simpson_Index) # perhaps lognormal?
+hist(active_data$n) # assume Poisson
+hist(active_data$no_species) # assume Poisson
+hist(active_data$Shannon_Index) # approximately normal
+hist(active_data$Simpson_Index) # approximately normal
+hist(active_data$Inv_Simpson_Index) # perhaps lognormal?
 ```
 
 
-##b. assess correlation of predictor variables
+##c. assess correlation of predictor variables
 
 look at correlation matrix - high collinearity if correlation > 0.7
 ```{r}
-ggpairs(site_data, columns = c(18,19,20,21,22,23))
+ggpairs(active_data, columns = c(18,19,20,21,22,23))
 ```
 
 canopy cover and hoja are highly correlated (0.873!) - only use canopy cover
 
 
-##c. plot variable relationships with abundance
+##d. plot variable relationships with abundance
 
 ```{r}
-ggplot(site_data, aes(x = Tipo, y = n)) +
+ggplot(active_data, aes(x = Tipo, y = n)) +
   geom_boxplot()
 
-ggplot(site_data, aes(x = veg_scaled, y = n)) +
+ggplot(active_data, aes(x = veg_scaled, y = n)) +
   geom_point()
 
-ggplot(site_data, aes(x = CC_scaled, y = n)) +
+ggplot(active_data, aes(x = CC_scaled, y = n)) +
   geom_point()
 
-ggplot(site_data, aes(x = forest_scaled, y = n)) +
+ggplot(active_data, aes(x = forest_scaled, y = n)) +
   geom_point()
 
-ggplot(site_data, aes(x = water_scaled, y = n)) +
+ggplot(active_data, aes(x = water_scaled, y = n)) +
   geom_point()
 
-ggplot(site_data, aes(x = elevation_scaled, y = n)) +
+ggplot(active_data, aes(x = elevation_scaled, y = n)) +
   geom_point()
 ```
 
 
-## d. GLM for abundance with all predictors
+##e. GLM for abundance with all predictors
 
 Poisson abundance model was overdispersed - use negative binomial instead
 
@@ -505,7 +515,7 @@ full negative binomial glm.nb for abundance
 ```{r}
 glm_full_abundance <- glm.nb(n ~ Tipo + veg_scaled + CC_scaled + forest_scaled + 
                        water_scaled + elevation_scaled, 
-                       data = site_data)
+                       data = active_data)
 summary(glm_full_abundance)
 ```
 
@@ -556,7 +566,7 @@ best model:
 - contains only CC_scaled - although this is not sig
 
 
-##e. GLM for richness with all predictors
+##f. GLM for richness with all predictors
 
 same process as above except using richness as response variable here
 
@@ -565,7 +575,7 @@ full Poisson glm for richness
 # full richness model with all predictors
 glm_full_richness <- glm(no_species ~ Tipo + veg_scaled + CC_scaled + forest_scaled +
                        water_scaled + elevation_scaled,
-                       data = site_data,
+                       data = active_data,
                        family = poisson)
 summary(glm_full_richness)
 ```
@@ -617,7 +627,7 @@ best model:
 - no issues with model fit
 
 
-##f. GLM for Shannon diversity with all predictors
+##g. GLM for Shannon diversity with all predictors
 
 full glm for shannon with normal dist.
 - Shannon isn't count data! so don't use Poisson? non-integer values?
@@ -625,7 +635,7 @@ full glm for shannon with normal dist.
 # full shannon model with all predictors
 glm_full_shannon <- glm(Shannon_Index ~ Tipo + veg_scaled + CC_scaled + forest_scaled +
                        water_scaled + elevation_scaled,
-                       data = site_data,
+                       data = active_data,
                        family = gaussian) # normal distribution
 summary(glm_full_shannon)
 ```
@@ -679,7 +689,7 @@ best model:
 - forest sig positive effect
 
 
-##g. GLM for Simpson diversity with all predictors
+##h. GLM for Simpson diversity with all predictors
 
 full glm for simpson with normal distribution
 - simpson isn't count data! so can't use Poisson distribution
@@ -687,7 +697,7 @@ full glm for simpson with normal distribution
 # full simpson model with all predictors
 glm_full_simpson <- glm(Simpson_Index ~ Tipo + veg_scaled + CC_scaled + forest_scaled +
                        water_scaled + elevation_scaled,
-                       data = site_data,
+                       data = active_data,
                        family = gaussian)
 summary(glm_full_simpson)
 ```
