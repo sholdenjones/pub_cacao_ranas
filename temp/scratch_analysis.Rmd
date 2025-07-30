@@ -265,3 +265,28 @@ confint(tukey_shannon)
 
 
 
+
+##d. Simpson diversity
+
+GLM for Simpson diversity
+- assume normal - refer to histogram above - not overdispersed!
+- significant difference - use Tukey's HSD for post hoc test
+```{r}
+glm_type_simpson <- glm(Simpson_Index ~ Tipo,
+                         data = site_data)
+summary(glm_type_simpson)
+```
+
+assess model fit
+```{r}
+# assess how model fits using DHARMa package
+simulationOutput <- simulateResiduals(fittedModel = glm_type_simpson)
+plot(simulationOutput)
+
+testDispersion(simulationOutput)
+testZeroInflation(simulationOutput)
+```
+
+
+
+

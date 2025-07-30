@@ -24,6 +24,7 @@ library(MuMIn)
 library(MASS) # note that this produces masking issues for select()
 library(multcomp)
 library(betareg)
+library(lmtest)
 ```
 
 ```{r}
@@ -244,6 +245,15 @@ testDispersion(simulationOutput)
 testZeroInflation(simulationOutput)
 ```
 
+likelihood ratio test
+```{r}
+# fit null model
+glm_null_abundance <- glm.nb(n ~ 1, data = site_data)
+
+# likelihood ratio test
+anova(glm_null_abundance, glm_type_abundance, test = "Chisq")
+```
+
 
 ##c. richness
 
@@ -267,39 +277,46 @@ testDispersion(simulationOutput)
 testZeroInflation(simulationOutput)
 ```
 
+likelihood ratio test
+```{r}
+# fit null model
+glm_null_richness <- glm(no_species ~ 1,
+                         data = site_data,
+                         family = poisson)
+
+# likelihood ratio test
+anova(glm_null_richness, glm_type_richness, test = "Chisq")
+```
+
 
 ##d. Simpson diversity
 
 GLM for Simpson diversity
-- assume normal - refer to histogram above - not overdispersed!
-- significant difference - use Tukey's HSD for post hoc test
+- use beta regression distribution, appropriate for proportions between 0 and 1
+- no significant difference, no need for post hoc test
 ```{r}
-glm_type_simpson <- glm(Simpson_Index ~ Tipo,
-                         data = site_data)
+glm_type_simpson <- betareg(Simpson_Index ~ Tipo,
+                      data = site_data)
 summary(glm_type_simpson)
 ```
 
 assess model fit
+- note that DHARMa does not work with betareg models - use default plot
 ```{r}
-# assess how model fits using DHARMa package
-simulationOutput <- simulateResiduals(fittedModel = glm_type_simpson)
-plot(simulationOutput)
-
-testDispersion(simulationOutput)
-testZeroInflation(simulationOutput)
+plot(glm_type_simpson)
 ```
 
-Tukey's HSD test to detect difference between site types
-- accounting for family error rate, no sig differences between site types
+
+likelihood ratio test
+- compare fit of null model with site type model
+- need to use lmtest package b/c using betareg model
+- no significant effect of site type on Simpson Index
 ```{r}
-# Tukey HSD-style pairwise comparisons
-tukey_simpson <- glht(glm_type_simpson, linfct = mcp(Tipo = "Tukey"))
+# fit null model
+glm_simpson_null <- betareg(Simpson_Index ~ 1, data = site_data)
 
-# View the summary of pairwise contrasts
-summary(tukey_simpson)
-
-# Confidence intervals
-confint(tukey_simpson)
+# likelihood ratio test
+lrtest(glm_simpson_null, glm_type_simpson)
 ```
 
 
@@ -395,7 +412,7 @@ plot_type_arrange
 
 #4. GLMs for each predictor variable for active cacao plantations only
 
-GLMs to assess the influence of local and landscape variables on response vars
+GLMs to explore the influence of local and landscape variables on response vars
 - only for active cacao plantations
 
 response vars
@@ -679,6 +696,19 @@ summary(best_simpson_model)
 # assess best full model fit - NOTE THAT DHARMA DOES NOT WORK WITH BETAREG MODELS
 plot(best_simpson_model)
 ```
+
+beta regression Simpson model summary
+
+full model:
+- no issues with model fit
+- elevation significant negative effect
+
+dredge:
+- elv, elv, CC models both have delta AIC <2.0
+
+best model:
+- no issues with model fit
+- elevation significant negative effect
 
 
 ##g. make AIC table

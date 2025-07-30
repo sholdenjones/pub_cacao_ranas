@@ -225,7 +225,7 @@ site_data <- site_data %>%
 
 ## scale predictors
 
-standardize predictor variables using scale function
+scale values of predictor variables using scale function
 - keep mean value columns as well
 ```{r}
 site_data <- site_data %>%
