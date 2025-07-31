@@ -410,7 +410,49 @@ plot_type_arrange
 ```
 
 
-#4. GLMs for each predictor variable for active cacao plantations only
+
+## WORKING BELOW HERE
+
+
+#4. Community composition across land use types
+
+
+1. NMDS to visualize community differences 
+- follow the S.E.'s methods for this and cite him
+
+You would typically:
+Use a dissimilarity index like Bray-Curtis (good for abundance data).
+Plot the NMDS and color-code points by site type.
+Optionally, add convex hulls or ellipses for group visualization.
+## COPY AND REFINE CODE
+
+2. then run PERMANOVA to quantify differences across land use types
+- adonis, in vegan package - good for non-normal variable (?)
+## NEW CODE
+
+3. Look at sampling coverage for each land use type
+- using inext package
+## NEW CODE
+
+4. then look at rank abundance curves across land-use types?
+- using vegan - recommended by S.E. b/c dominance of priach
+## NEW CODE
+
+5. extrapolate communities using iNEXT - I think just do same thing as previouse code
+## COPY CODE
+
+
+6. compare abundance of species of conservation concern
+- just need to copy and paste this code from previous analysis script
+## COPY CODE
+
+
+## WORKING ABOVE HERE
+
+
+
+
+#5. GLMs for each predictor variable for active cacao plantations only
 
 GLMs to explore the influence of local and landscape variables on response vars
 - only for active cacao plantations
