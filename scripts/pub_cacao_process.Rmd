@@ -28,7 +28,7 @@ ranas - individual occurrence data across all sites
 ```{r}
 # read raw ranas data
 ranas <- read_csv("data/raw_data/ranas_07_14_25.csv") %>%
-  select(-...20, -...21) # remove dummy columns 
+  dplyr::select(-...20, -...21) # remove dummy columns 
 
 # format dates
 ranas$sample_date <- as.Date(ranas$Fecha, format = "%d/%m/%y")
@@ -266,12 +266,12 @@ order_new_matrix <- c(2,4,7,16,18,21,23,24,26,28,31, # sun (n=11)
                       6,10,11,12,15) # forest (n=5)
 
 # reorder rows
-new_matrix <- new_mat[order_new_matrix, ]
+new_matrix <- new_matrix[order_new_matrix, ]
 
 # output
 # filename <- "new_matrix_processed.csv"
 # filepath <- file.path(data_dir, filename)
-# write_csv(new_mat, file = filepath)
+# write_csv(new_matrix, file = filepath)
 ```
 
 
