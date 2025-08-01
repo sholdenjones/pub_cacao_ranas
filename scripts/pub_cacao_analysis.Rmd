@@ -25,6 +25,7 @@ library(MASS) # note that this produces masking issues for select()
 library(multcomp)
 library(betareg)
 library(lmtest)
+library(vegan)
 ```
 
 load site_data
@@ -213,6 +214,16 @@ plot_paired_arrange
 
 #3. GLMs with habitat type as fixed effect
 
+first need to remove one pair of cacao plantations
+- we were prohibited from sampling in the rainy season at these two sites
+  so cannot compare them against other site types b/c 1/2 sampling effort
+- but can include them in paired analyses above b/c compared against themselves
+```{r}
+site_data <- site_data %>%
+  dplyr::filter(Sitio != "AZ-C" & Sitio != "AZ-N")
+```
+
+
 ## NEED TO DELETE TWO SITES THAT WE DID NOT SAMPLE IN SPRING
 
 Use GLMs to compare the effect of habitat type on each response variable
@@ -332,7 +343,7 @@ lrtest(glm_simpson_null, glm_type_simpson)
 
 labels for arranged type figure
 ```{r}
-type_site_labels <-  c("Sun \n (n = 11)", "Shade \n (n = 11)", 
+type_site_labels <-  c("Sun \n (n = 10)", "Shade \n (n = 11)", 
                        "Abandoned \n (n = 4)", "Forest \n (n =5)")
 ```
 
@@ -436,46 +447,48 @@ Optionally, add convex hulls or ellipses for group visualization.
 
 
 ```{r}
-# # Create a site type vector
-# site_types <- c(rep("Shade cacao", 12), 
-#                 rep("Sun cacao", 11), 
-#                 rep("Abandoned plantation", 4), 
-#                 rep("Remnant forest", 5))
-# 
-# dissimilarity_matrix <- vegdist(new_mat, method = "bray")
-# 
-# # NMDS of dissimilarity matrix - used by Mendenhall!
-# nmds <- metaMDS(dissimilarity_matrix, k = 2) # stress of .08
-# plot(nmds)
-# 
-# # PCA - (if dissimilarities are not too high-dimensional)
-# pca <- cmdscale(dissimilarity_matrix, k = 2)
-# plot(pca[, 1], pca[, 2], xlab = "PC1", ylab = "PC2")
-# 
-# # visualize and color by site type
-# nmds_data <- as.data.frame(scores(nmds))
-# nmds_data$site_type <- factor(site_types, 
-#                               levels = c("Shade cacao", "Sun cacao", 
-#                                          "Abandoned plantation", "Remnant forest"))
-# 
-# # plot with ggplot, color by site type
-# plot_nmds_bray <- ggplot(nmds_data, aes(x = NMDS1, y = NMDS2, 
-#                                         color = site_type)) +
-#   geom_point(size = 4) +
-#   scale_color_manual(values = c("Shade cacao" = "#A6611A", 
-#                                "Sun cacao" = "#DFC27D", 
-#                                "Abandoned plantation" = "#80CDC1", 
-#                                "Remnant forest" = "#018571")) +
-#   theme_minimal() +
-#   labs(color = "Land use type") +
-#   theme(
-#     axis.text = element_text(size = 16),
-#     axis.title = element_text(size = 22),
-#     legend.text = element_text(size = 16),
-#     legend.title = element_text(size = 22)
-#   )
-# plot_nmds_bray
-# #ggsave("output/plot_nmds_bray.png", width = 10, height = 10)
+# create a site type vector - this MUST align with order of sites
+site_types <- c(rep("Sun cacao", 11),
+                rep("Shade cacao", 12),
+                rep("Abandoned plantation", 4),
+                rep("Remnant forest", 5))
+
+dissimilarity_matrix <- vegdist(new_matrix, method = "bray")
+
+# NMDS of dissimilarity matrix - used by Mendenhall!
+nmds <- metaMDS(dissimilarity_matrix, k = 2) # stress of .08
+plot(nmds)
+
+# visualize and color by site type
+nmds_data <- as.data.frame(scores(nmds))
+nmds_data$site_type <- factor(site_types,
+                              levels = c("Sun cacao", "Shade cacao", 
+                                         "Abandoned plantation", "Remnant forest"))
+
+# plot with ggplot, color by site type
+plot_nmds_bray <- ggplot(nmds_data, aes(x = NMDS1, y = NMDS2,
+                                        color = site_type)) +
+  geom_point(size = 4) +
+  scale_color_manual(values = c("Sun cacao" = "#DFC27D",
+                                "Shade cacao" = "#A6611A",
+                               "Abandoned plantation" = "#80CDC1",
+                               "Remnant forest" = "#018571")) +
+  theme_minimal() +
+  labs(color = "Land use type") +
+  my_theme()
+
+
+
+
+
+  theme(
+    axis.text = element_text(size = 16),
+    axis.title = element_text(size = 22),
+    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 22)
+  )
+plot_nmds_bray
+#ggsave("output/plot_nmds_bray.png", width = 10, height = 10)
 ```
 
 
