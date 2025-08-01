@@ -248,6 +248,33 @@ site_data <- site_data %>%
 ```
 
 
+#4. new_matrix
+
+matrix for community comparisons across site types
+```{r}
+new_matrix <- matrify(
+  data.frame(new %>%
+             group_by(Sitio) %>%
+              count(`Final_ID`)
+  )
+)
+
+# define the desired order of rows: sun, shade, abandoned, forest
+order_new_matrix <- c(2,4,7,16,18,21,23,24,26,28,31, # sun (n=11)
+                      1,3,5,8,19,20,22,25,27,29,30,32, # shade (n=12)
+                      9,13,14,17, # abandoned (n=4)
+                      6,10,11,12,15) # forest (n=5)
+
+# reorder rows
+new_matrix <- new_mat[order_new_matrix, ]
+
+# output
+# filename <- "new_matrix_processed.csv"
+# filepath <- file.path(data_dir, filename)
+# write_csv(new_mat, file = filepath)
+```
+
+
 
 
 
