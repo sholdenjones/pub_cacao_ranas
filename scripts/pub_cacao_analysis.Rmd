@@ -634,9 +634,12 @@ plot_rank_site <- ggplot(rac_long, aes(x = Rank, y = Abundance, color = site_typ
   scale_color_manual(values = pal) +
   labs(x = "Species Rank", 
        y = "Abundance (log scale)",
-       color = "Land use type",
-       title = "Rank abundance curves by habitat type") +
-  theme_minimal()
+       color = "Land use type") +
+  theme_minimal() +
+  theme(axis.text = element_text(size = 22, color = "gray25"),
+        axis.title = element_text(size = 26, color = "gray25"),
+        legend.title =  element_text(size = 26),
+        legend.text = element_text(size = 22))
 
 plot_rank_site
 #ggsave("output/plot_rank_site.png", width =10, height = 10)
@@ -665,8 +668,6 @@ plot_rank_species <- ggplot(rac_long, aes(x = Rank, y = Abundance)) +
   theme_minimal() +
   theme(strip.text = element_text(size = 22),
         legend.position = "none",
-        plot.background = element_rect("white"),
-        panel.background = element_rect("white"),
         panel.grid = element_line("grey90"),
         axis.line = element_line("gray25"),
         axis.text = element_text(size = 22, color = "gray25"),
@@ -674,7 +675,7 @@ plot_rank_species <- ggplot(rac_long, aes(x = Rank, y = Abundance)) +
         legend.text = element_text(size = 22))
 
 plot_rank_species
-#ggsave("output/plot_rank_species.png", width =10, height = 10)
+#ggsave("output/plot_rank_species.png", width =15, height = 10)
 ```
 
 
@@ -685,9 +686,6 @@ plot_rank_species
 - using inext package
 ## NEW CODE
 
-4. then look at rank abundance curves across land-use types?
-- using vegan - recommended by S.E. b/c dominance of priach
-## NEW CODE
 
 5. extrapolate communities using iNEXT - I think just do same thing as previouse code
 ## COPY CODE
