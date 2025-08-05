@@ -39,6 +39,12 @@ site_data$Tipo <- factor(site_data$Tipo,
                          c("C", "N", "V", "B"))
 ```
 
+load new
+- all unique individuals captured in sampling effort
+```{r}
+new <- read_csv("data/processed_data/new_processed.csv")
+```
+
 load new_matrix
 ```{r}
 new_matrix <- read_csv("data/processed_data/new_matrix_processed.csv")
@@ -805,7 +811,6 @@ plot_extrapolate_simpson
 ### arrange iNEXT figures for each Hill number
 
 ```{r}
-
 plot_extrapolate_arrange <- ggarrange(
   simpson_legend,
   plot_extrapolate_richness,
@@ -820,29 +825,36 @@ plot_extrapolate_arrange <- ggarrange(
 )
 
 plot_extrapolate_arrange
-
-ggsave("output/plot_extrapolate_arrange.png", width = 10, height = 15)
+#ggsave("output/plot_extrapolate_arrange.png", width = 10, height = 15)
 ```
 
 
+#5. Endangered species across site types
+
+IUCN search revealed that five species we found are threatened (DD or higher)
+```{r}
+new_threatened <- new %>%
+  filter(Final_ID == 'epiesp' | # could remove epiesp b/c only DD
+         Final_ID == 'lepper' |
+         Final_ID == 'oopsyl' |
+         Final_ID == 'leubil' |
+         Final_ID == 'prilatic')
+
+threatened_abundance_by_site <- new_threatened %>%
+  group_by(Tipo, Final_ID) %>%
+  summarize(num_ind = n_distinct(Numero))
+
+threatened_abundance_by_site
+```
+
+
+#6. GLMs for each predictor variable for active cacao plantations only
 
 
 
-6. compare abundance of species of conservation concern
-- just need to copy and paste this code from previous analysis script
-## COPY CODE
+## ###########NEED TO PUT IN PCA ANALYSIS HERE
 
 
-## WORKING ABOVE HERE
-
-
-
-
-
-
-
-
-#5. GLMs for each predictor variable for active cacao plantations only
 
 GLMs to explore the influence of local and landscape variables on response vars
 - only for active cacao plantations

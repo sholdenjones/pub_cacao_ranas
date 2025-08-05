@@ -56,6 +56,11 @@ new <- ranas %>%
 new %>%
   group_by(Final_ID) %>%
   count()
+
+# output
+# filename <- "new_processed.csv"
+# filepath <- file.path(data_dir, filename)
+# write_csv(new, file = filepath)
 ```
 
 
