@@ -26,6 +26,7 @@ library(multcomp)
 library(betareg)
 library(lmtest)
 library(vegan)
+library(ggrepel)
 ```
 
 load site_data
@@ -223,8 +224,6 @@ site_data <- site_data %>%
   dplyr::filter(Sitio != "AZ-C" & Sitio != "AZ-N")
 ```
 
-
-## NEED TO DELETE TWO SITES THAT WE DID NOT SAMPLE IN SPRING
 
 Use GLMs to compare the effect of habitat type on each response variable
 - forest and abandoned plantation sites are not paired and have different 
@@ -429,82 +428,258 @@ plot_type_arrange
 ```
 
 
-
-## WORKING BELOW HERE
-
-
 #4. Community composition across land use types
 
+Want to compare the community composition across site types
+- how different are these sites from each other?
+- go beyond simple abundance, richness, diversity indices
 
-1. NMDS to visualize community differences 
+
+##a. Bray-Curtis dissimilarity matrix
+
+NMDS to visualize community differences 
 - follow the S.E.'s methods for this and cite him
 
-You would typically:
-Use a dissimilarity index like Bray-Curtis (good for abundance data).
-Plot the NMDS and color-code points by site type.
-Optionally, add convex hulls or ellipses for group visualization.
-## COPY AND REFINE CODE
-
-
+create Bray-Curtis dissimilarity matrix from abundance-based new_matrix
 ```{r}
 # create a site type vector - this MUST align with order of sites
-site_types <- c(rep("Sun cacao", 11),
-                rep("Shade cacao", 12),
-                rep("Abandoned plantation", 4),
-                rep("Remnant forest", 5))
+site_types <- c(rep("Sun cacao (n = 10)", 10),
+                rep("Shade cacao (n = 11)", 11),
+                rep("Abandoned plantation (n = 4)", 4),
+                rep("Remnant forest (n = 5)", 5))
 
 dissimilarity_matrix <- vegdist(new_matrix, method = "bray")
+```
 
-# NMDS of dissimilarity matrix - used by Mendenhall!
+
+##b. NMDS using dissimilarity matrix
+
+run NMDS off dissimilarity matrix
+```{r}
+# NMDS of dissimilarity matrix
 nmds <- metaMDS(dissimilarity_matrix, k = 2) # stress of .08
 plot(nmds)
+stressplot(nmds) # Non=metric fit R2=0.99, Linear Fit R2=0.98
+round(nmds$stress,2) # 0.08
 
 # visualize and color by site type
-nmds_data <- as.data.frame(scores(nmds))
+nmds_data <- as.data.frame(vegan::scores(nmds))
 nmds_data$site_type <- factor(site_types,
-                              levels = c("Sun cacao", "Shade cacao", 
-                                         "Abandoned plantation", "Remnant forest"))
+                              levels = c("Sun cacao (n = 10)", 
+                                         "Shade cacao (n = 11)", 
+                                         "Abandoned plantation (n = 4)", 
+                                         "Remnant forest (n = 5)"))
+```
 
+plot NMDS, coloring by site type, without elipses
+```{r}
 # plot with ggplot, color by site type
 plot_nmds_bray <- ggplot(nmds_data, aes(x = NMDS1, y = NMDS2,
                                         color = site_type)) +
   geom_point(size = 4) +
-  scale_color_manual(values = c("Sun cacao" = "#DFC27D",
-                                "Shade cacao" = "#A6611A",
-                               "Abandoned plantation" = "#80CDC1",
-                               "Remnant forest" = "#018571")) +
+  scale_color_manual(values = c("Sun cacao (n = 10)" = "#DFC27D",
+                                "Shade cacao (n = 11)" = "#A6611A",
+                               "Abandoned plantation (n = 4)" = "#80CDC1",
+                               "Remnant forest (n = 5)" = "#018571")) +
   theme_minimal() +
   labs(color = "Land use type") +
-  my_theme()
-
-
-
-
-
-  theme(
-    axis.text = element_text(size = 16),
-    axis.title = element_text(size = 22),
-    legend.text = element_text(size = 16),
-    legend.title = element_text(size = 22)
-  )
+  theme(axis.text = element_text(size = 22),
+    axis.title = element_text(size = 26),
+    legend.text = element_text(size = 22),
+    legend.title = element_text(size = 26))
 plot_nmds_bray
-#ggsave("output/plot_nmds_bray.png", width = 10, height = 10)
+```
+
+plot NMDS including elipses
+```{r}
+plot_nmds_bray +
+  stat_ellipse(aes(group = site_type), 
+               type = "norm", 
+               level = 0.95, 
+               linewidth = 1, 
+               linetype = "dashed")
+
+#ggsave("output/plot_nmds_bray.png", width = 15, height = 10)
+```
+
+
+### test NMDS fit with null models
+
+compare observed community structure to random structure
+- use oecsimu function in vegan package
+  - this runs simulations by swapping around distributions from my observed matrix
+    then, we compare the stress of my observed NMDS to 1000 simulated values
+  - if p-value < 0.05, then the observed ordination is significantly better than
+    chance suggesting there is meaningful community structure among sites
+- using code from Jithin et al. 2025
+
+oecosimu simulation test to assess NMDS fit 
+- cannot reject null hypothesis that NMDS fit is significantly different than 
+  simulated stress values
+  
+set seed and reps for simulation
+```{r}
+set.seed(123)
+reps <- 1000
+```
+
+stress test using oecosimu - takes a very long time to run so comment out
+```{r}
+# stressTest <- oecosimu(comm = round(new_matrix), method = "swap_count",
+#                      nestfun = metaMDS, autotransform = FALSE, k = 2,
+#                      distance = "bray", nsimul = reps,
+#                      parallel = 3, statistic = "stress",
+#                      alternative = "less", trace = TRUE, maxit = 1000,
+#                      trymax = 200, sratmax = 0.9999999)
+```
+
+stress test results - comment out
+```{r}
+# stressTest
+# stressTest$oecosimu$statistic # 0.08 observed stress - matches above NMDS
+# stressTest$oecosimu$simulated # 1,000 simulated null stress values
+# stressTest$oecosimu$means # 0.08 mean of simulated null stress values
+# stressTest$oecosimu$z # -0.1 z-score of observed stress vs. null
+# stressTest$oecosimu$pval # 0.15 p-value, is fit due to chance? yes
+```
+
+plot observed vs. simulated NMDS stress values - comment out
+```{r}
+# hist(as.vector(stressTest$oecosimu$simulated),
+#      xlim = c(0,max(stressTest$oecosimu$simulated)+.05),
+#      xlab = "Ecological null model stress value",
+#      ylab = "Frequency of stress value",
+#      main = "",
+#      breaks = 7)
+# abline(v = stressTest$oecosimu$statistic, col = "red", lty = 2)
+```
+
+
+##c. PERMANOVA to assess differences among groups
+
+join site_types from above to site_metadata for assigning group ID
+```{r}
+# make sure site_types from above is a factor
+site_types <- factor(site_types,
+                           levels = c("Sun cacao (n = 10)", 
+                                      "Shade cacao (n = 11)", 
+                                      "Abandoned plantation (n = 4)", 
+                                      "Remnant forest (n = 5)"))
+
+site_metadata <- data.frame(
+  site_id = rownames(new_matrix),
+  site_type = site_types
+)
+```
+
+PERMANOVA
+- communities are not sig different based on groups
+```{r}
+# run PERMANOVA
+permanova_result <- adonis2(new_matrix ~ site_type, 
+                            data = site_metadata,
+                            permutations = 999,
+                            method = "bray")
+print(permanova_result)
+```
+
+test for homogeneity of dispersion
+- dispersion equal across groups
+- assumption of dispersion homogeneity not violated
+- so can trust PERMANOVA results
+```{r}
+dispersion_test <- betadisper(dissimilarity_matrix, site_types)
+anova_dispersion <- anova(dispersion_test)
+
+print(anova_dispersion)
+```
+
+
+##d. Rank-abundance curves for each site type
+
+aggregate species across habitat types using new_matrix
+```{r}
+new_matrix <- cbind(site_types, new_matrix)
+
+species_by_habitat <- new_matrix %>%
+  group_by(site_types) %>%
+  summarise(across(everything(), sum))
+```
+
+convert to long format and filter out rows with 0 abundance
+```{r}
+rac_long <- species_by_habitat %>%
+  pivot_longer(-site_types, names_to = "Species", values_to = "Abundance") %>%
+  group_by(site_types) %>%
+  arrange(desc(Abundance), .by_group = TRUE) %>%
+  mutate(Rank = row_number())
+
+rac_long <- rac_long %>%
+  filter(!Abundance == 0)
+```
+
+filter species with more than 5 ind - use for labeling
+```{r}
+rac_long_filtered <- rac_long %>%
+  group_by(site_types) %>%
+  filter(Abundance >= 5)
+```
+
+make rank abundance curve - coloring by site
+```{r}
+plot_rank_site <- ggplot(rac_long, aes(x = Rank, y = Abundance, color = site_types)) +
+  geom_line() +
+  geom_point() +
+  scale_y_log10() +
+  scale_color_manual(values = pal) +
+  labs(x = "Species Rank", 
+       y = "Abundance (log scale)",
+       color = "Land use type",
+       title = "Rank abundance curves by habitat type") +
+  theme_minimal()
+
+plot_rank_site
+#ggsave("output/plot_rank_site.png", width =10, height = 10)
+```
+
+make rank abundance curve - facet by site, annotate most abundant species
+```{r}
+plot_rank_species <- ggplot(rac_long, aes(x = Rank, y = Abundance)) +
+  geom_line(aes(color = site_types)) +      
+  geom_point(aes(color = site_types)) +     
+  geom_text_repel(data = rac_long_filtered, aes(label = Species), 
+                  size = 6, 
+                  color = "gray25",        
+                  max.overlaps = Inf, 
+                  segment.color = "gray25",
+                  box.padding = 1.0,
+                  point.padding = 1.0,
+                  min.segment.length = 0) +
+  scale_y_log10() +
+  scale_color_manual(values = pal) +
+  facet_wrap(~ site_types) +              
+  labs(
+    x = "Species rank",
+    y = "Abundance (log scale)",
+    color = "Land use type") +
+  theme_minimal() +
+  theme(strip.text = element_text(size = 22),
+        legend.position = "none",
+        plot.background = element_rect("white"),
+        panel.background = element_rect("white"),
+        panel.grid = element_line("grey90"),
+        axis.line = element_line("gray25"),
+        axis.text = element_text(size = 22, color = "gray25"),
+        axis.title = element_text(size = 26, color = "gray25"),
+        legend.text = element_text(size = 22))
+
+plot_rank_species
+#ggsave("output/plot_rank_species.png", width =10, height = 10)
 ```
 
 
 
 
-
-
-
-
-
-
-
-
-2. then run PERMANOVA to quantify differences across land use types
-- adonis, in vegan package - good for non-normal variable (?)
-## NEW CODE
 
 3. Look at sampling coverage for each land use type
 - using inext package

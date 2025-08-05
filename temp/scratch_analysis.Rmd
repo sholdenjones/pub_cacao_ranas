@@ -308,3 +308,32 @@ order_new_matrix <- c(2,4,7,16,18,21,23,24,26,28,31, # sun (n=11)
 ```
 
 
+
+
+
+
+
+## CODE FROM CHAT GPT:
+create nmds stress function
+```{r}
+# nmds_stress_fun <- function(comm) {
+#   ord <- metaMDS(comm, k = 2, try = 50, trymax = 100, trace = FALSE)
+#   return(ord$stress)
+# }
+```
+
+```{r}
+# set.seed(123)  # for reproducibility
+# 
+# nmds_null_test <- oecosimu(
+#   new_matrix,
+#   nmds_stress_fun,
+#   method = "swap",   # or "r2dtable", "quasiswap", etc.
+#   nsimul = 999
+# )
+# 
+# print(nmds_null_test)
+```
+"Your NMDS stress value (0.221) is significantly lower than expected under the null model (p = 0.005). This means the observed community structure is unlikely to be random, and suggests meaningful ecological patterns across sites."
+
+
