@@ -27,6 +27,7 @@ library(betareg)
 library(lmtest)
 library(vegan)
 library(ggrepel)
+library(iNEXT)
 ```
 
 load site_data
@@ -525,33 +526,33 @@ reps <- 1000
 
 stress test using oecosimu - takes a very long time to run so comment out
 ```{r}
-stressTest <- oecosimu(comm = round(new_matrix), method = "swap_count",
-                     nestfun = metaMDS, autotransform = FALSE, k = 2,
-                     distance = "bray", nsimul = reps,
-                     parallel = 3, statistic = "stress",
-                     alternative = "less", trace = TRUE, maxit = 1000,
-                     trymax = 200, sratmax = 0.9999999)
+# stressTest <- oecosimu(comm = round(new_matrix), method = "swap_count",
+#                      nestfun = metaMDS, autotransform = FALSE, k = 2,
+#                      distance = "bray", nsimul = reps,
+#                      parallel = 3, statistic = "stress",
+#                      alternative = "less", trace = TRUE, maxit = 1000,
+#                      trymax = 200, sratmax = 0.9999999)
 ```
 
 stress test results - comment out
 ```{r}
-stressTest
-stressTest$oecosimu$statistic # 0.08 observed stress - matches above NMDS
-stressTest$oecosimu$simulated # 1,000 simulated null stress values
-stressTest$oecosimu$means # 0.08 mean of simulated null stress values
-stressTest$oecosimu$z # -0.1 z-score of observed stress vs. null
-stressTest$oecosimu$pval # 0.15 p-value, is fit due to chance? yes
+# stressTest
+# stressTest$oecosimu$statistic # 0.08 observed stress - matches above NMDS
+# stressTest$oecosimu$simulated # 1,000 simulated null stress values
+# stressTest$oecosimu$means # 0.08 mean of simulated null stress values
+# stressTest$oecosimu$z # -0.1 z-score of observed stress vs. null
+# stressTest$oecosimu$pval # 0.15 p-value, is fit due to chance? yes
 ```
 
 plot observed vs. simulated NMDS stress values - comment out
 ```{r}
-hist(as.vector(stressTest$oecosimu$simulated),
-     xlim = c(0,max(stressTest$oecosimu$simulated)+.05),
-     xlab = "Ecological null model stress value",
-     ylab = "Frequency of stress value",
-     main = "",
-     breaks = 7)
-abline(v = stressTest$oecosimu$statistic, col = "red", lty = 2)
+# hist(as.vector(stressTest$oecosimu$simulated),
+#      xlim = c(0,max(stressTest$oecosimu$simulated)+.05),
+#      xlab = "Ecological null model stress value",
+#      ylab = "Frequency of stress value",
+#      main = "",
+#      breaks = 7)
+# abline(v = stressTest$oecosimu$statistic, col = "red", lty = 2)
 ```
 
 
@@ -597,11 +598,15 @@ print(anova_dispersion)
 
 ##d. Rank-abundance curves for each site type
 
+note that this approach sums all individuals from each site type together
+- so you lose within group variation
+- but can be informative for assessing group-level patterns
+
 aggregate species across habitat types using new_matrix
 ```{r}
-new_matrix <- cbind(site_types, new_matrix)
+new_matrix_types <- cbind(site_types, new_matrix)
 
-species_by_habitat <- new_matrix %>%
+species_by_habitat <- new_matrix_types %>%
   group_by(site_types) %>%
   summarise(across(everything(), sum))
 ```
@@ -613,6 +618,9 @@ rac_long <- species_by_habitat %>%
   group_by(site_types) %>%
   arrange(desc(Abundance), .by_group = TRUE) %>%
   mutate(Rank = row_number())
+
+# save complete species by type matrix 
+rac_long_full <- rac_long
 
 rac_long <- rac_long %>%
   filter(!Abundance == 0)
@@ -679,16 +687,145 @@ plot_rank_species
 ```
 
 
+##e. iNEXT for sampling coverage and extrapolation
+
+first need to format new_matrix_types for iNEXT
+- need abundance_list, a list of summed species abundance for each site type
+```{r}
+# check structure of new_matrix_types
+str(new_matrix_types)
+
+# ensure site_types is a factor
+new_matrix_types$site_types <- as.factor(new_matrix_types$site_types)
+
+# summarize numeric species columns by site_types, convert to list of vectors
+abundance_list <- new_matrix_types %>%
+  group_by(site_types) %>%
+  summarise(across(where(is.numeric), sum), .groups = "drop") %>%
+  split(.$site_types) %>%
+  lapply(function(x) as.numeric(x[, -1]))
+
+# check structure
+str(abundance_list)
+```
+
+extrapolate for each site type, for each of three different Hill numbers
+- q = 0 - richness
+- q = 1 - Shannon diversity - more sensitive to rare species
+- q = 2 - Simpson diversity - less sensitive to rare species
+```{r}
+extrapolate_richness <- iNEXT(abundance_list, q = 0, 
+                               datatype = "abundance", endpoint = 1000)
+
+extrapolate_shannon <- iNEXT(abundance_list, q = 1, 
+                               datatype = "abundance", endpoint = 1000)
+
+extrapolate_simpson <- iNEXT(abundance_list, q = 2, 
+                               datatype = "abundance", endpoint = 1000)
+```
+
+plot iNEXT extrapolation for species richness
+```{r}
+plot_extrapolate_richness <- ggiNEXT(extrapolate_richness, type = 1) +
+  ylab("Species richness") +
+  scale_color_manual(values = c(
+    "Sun cacao (n = 10)" = "#DFC27D", 
+    "Shade cacao (n = 11)" = "#A6611A",
+    "Abandoned plantation (n = 4)" = "#80CDC1", 
+    "Remnant forest (n = 5)" = "#018571")) +
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid = element_blank(),
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.title = element_text(size = 26), 
+    axis.text = element_text(size = 22), 
+    legend.position = "none",
+    axis.title.x = element_blank(),
+    legend.text = element_text(size = 22),
+  )
+
+plot_extrapolate_richness
+```
+
+plot iNEXT extrapolation for Shannon
+```{r}
+plot_extrapolate_shannon <- ggiNEXT(extrapolate_shannon, type = 1) +
+  ylab("Shannon diversity") +
+  scale_color_manual(values = c(
+    "Sun cacao (n = 10)" = "#DFC27D", 
+    "Shade cacao (n = 11)" = "#A6611A",
+    "Abandoned plantation (n = 4)" = "#80CDC1", 
+    "Remnant forest (n = 5)" = "#018571")) +
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid = element_blank(),
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.title = element_text(size = 26), 
+    axis.text = element_text(size = 22), 
+    legend.position = "none",
+    axis.title.x = element_blank(),
+    legend.text = element_text(size = 22),
+  )
+
+plot_extrapolate_shannon
+```
+
+plot iNEXT extrapolation for Simpson
+```{r}
+plot_extrapolate_simpson <- ggiNEXT(extrapolate_simpson, type = 1) +
+  ylab("Simpson diversity") +
+  scale_color_manual(values = c(
+    "Sun cacao (n = 10)" = "#DFC27D", 
+    "Shade cacao (n = 11)" = "#A6611A",
+    "Abandoned plantation (n = 4)" = "#80CDC1", 
+    "Remnant forest (n = 5)" = "#018571")) +
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid = element_blank(),
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.title = element_text(size = 26), 
+    axis.text = element_text(size = 22), 
+    legend.title = element_blank(),
+    legend.text = element_text(size = 22),
+  )
+
+# extract legend to plot below x-axis, then remove from plot
+simpson_legend <- get_legend(plot_extrapolate_simpson)
+
+plot_extrapolate_simpson <- plot_extrapolate_simpson +
+  theme(legend.position = "none")
+
+plot_extrapolate_simpson
+```
+
+
+### arrange iNEXT figures for each Hill number
+
+```{r}
+
+plot_extrapolate_arrange <- ggarrange(
+  simpson_legend,
+  plot_extrapolate_richness,
+  plot_extrapolate_shannon,
+  plot_extrapolate_simpson,
+  ncol = 1,
+  labels = c("", "a", "b", "c"),
+  font.label = list(size = 26, face = "bold"),
+  label.x = 0.005,
+  label.y = 0.15,
+  heights = c(0.15, 1, 1, 1)
+)
+
+plot_extrapolate_arrange
+
+ggsave("output/plot_extrapolate_arrange.png", width = 10, height = 15)
+```
 
 
 
-3. Look at sampling coverage for each land use type
-- using inext package
-## NEW CODE
-
-
-5. extrapolate communities using iNEXT - I think just do same thing as previouse code
-## COPY CODE
 
 
 6. compare abundance of species of conservation concern
@@ -697,6 +834,10 @@ plot_rank_species
 
 
 ## WORKING ABOVE HERE
+
+
+
+
 
 
 
