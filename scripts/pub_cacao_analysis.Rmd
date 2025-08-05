@@ -525,33 +525,33 @@ reps <- 1000
 
 stress test using oecosimu - takes a very long time to run so comment out
 ```{r}
-# stressTest <- oecosimu(comm = round(new_matrix), method = "swap_count",
-#                      nestfun = metaMDS, autotransform = FALSE, k = 2,
-#                      distance = "bray", nsimul = reps,
-#                      parallel = 3, statistic = "stress",
-#                      alternative = "less", trace = TRUE, maxit = 1000,
-#                      trymax = 200, sratmax = 0.9999999)
+stressTest <- oecosimu(comm = round(new_matrix), method = "swap_count",
+                     nestfun = metaMDS, autotransform = FALSE, k = 2,
+                     distance = "bray", nsimul = reps,
+                     parallel = 3, statistic = "stress",
+                     alternative = "less", trace = TRUE, maxit = 1000,
+                     trymax = 200, sratmax = 0.9999999)
 ```
 
 stress test results - comment out
 ```{r}
-# stressTest
-# stressTest$oecosimu$statistic # 0.08 observed stress - matches above NMDS
-# stressTest$oecosimu$simulated # 1,000 simulated null stress values
-# stressTest$oecosimu$means # 0.08 mean of simulated null stress values
-# stressTest$oecosimu$z # -0.1 z-score of observed stress vs. null
-# stressTest$oecosimu$pval # 0.15 p-value, is fit due to chance? yes
+stressTest
+stressTest$oecosimu$statistic # 0.08 observed stress - matches above NMDS
+stressTest$oecosimu$simulated # 1,000 simulated null stress values
+stressTest$oecosimu$means # 0.08 mean of simulated null stress values
+stressTest$oecosimu$z # -0.1 z-score of observed stress vs. null
+stressTest$oecosimu$pval # 0.15 p-value, is fit due to chance? yes
 ```
 
 plot observed vs. simulated NMDS stress values - comment out
 ```{r}
-# hist(as.vector(stressTest$oecosimu$simulated),
-#      xlim = c(0,max(stressTest$oecosimu$simulated)+.05),
-#      xlab = "Ecological null model stress value",
-#      ylab = "Frequency of stress value",
-#      main = "",
-#      breaks = 7)
-# abline(v = stressTest$oecosimu$statistic, col = "red", lty = 2)
+hist(as.vector(stressTest$oecosimu$simulated),
+     xlim = c(0,max(stressTest$oecosimu$simulated)+.05),
+     xlab = "Ecological null model stress value",
+     ylab = "Frequency of stress value",
+     main = "",
+     breaks = 7)
+abline(v = stressTest$oecosimu$statistic, col = "red", lty = 2)
 ```
 
 
