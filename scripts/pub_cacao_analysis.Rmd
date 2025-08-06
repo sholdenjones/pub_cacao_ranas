@@ -28,6 +28,7 @@ library(lmtest)
 library(vegan)
 library(ggrepel)
 library(iNEXT)
+library(factoextra)
 ```
 
 load site_data
@@ -851,11 +852,6 @@ threatened_abundance_by_site
 #6. GLMs for each predictor variable for active cacao plantations only
 
 
-
-## ###########NEED TO PUT IN PCA ANALYSIS HERE
-
-
-
 GLMs to explore the influence of local and landscape variables on response vars
 - only for active cacao plantations
 
@@ -874,10 +870,72 @@ Only assessing impact of local and landscape variables on active plantations
 ```{r}
 active_data <- site_data %>%
   filter(Tipo == 'N' | Tipo == 'C')
+
+# remove variables not used in PCA or plotting
+active_data <- active_data[,-c(1,3:11,16)]
+
+# rename CCN, Nacional to sun and shade respectively
+active_data <- active_data %>%
+  mutate(Tipo = dplyr::recode(as.character(Tipo),
+                       "C" = "Sun cacao (n = 10)",
+                       "N" = "Shade cacao (n = 11)"))
+
+# rename columns for plotting
+active_data <- active_data %>%
+  rename("Site type" = Tipo,
+         "Abundance" = n,
+         "Richness" = no_species,
+         "Shannon diversity" = Shannon_Index,
+         "Simpson diversity" = Simpson_Index,
+         "Vegetation cover" = veg_scaled,
+         "Leaf cover" = hoja_scaled,
+         "Canopy cover" = CC_scaled,
+         "Forest cover" = forest_scaled,
+         "Water distance" = water_scaled,
+         "Elevation" = elevation_scaled)
 ```
 
 
-##b. assess distribution of response variables
+##b. PCA for predictor and response variables
+standard PCA fitting and plotting
+- can only work for continuous variables
+```{r}
+pca_fit <- prcomp(
+  x = active_data[, c(2:11)], # only use continuous variables
+                  scale. = TRUE)
+
+pca_summary <- summary(pca_fit)
+pca_summary # first two axes explain 57% of variance
+
+# standard biplot - quick
+biplot(x = pca_fit)
+```
+
+```{r}
+custom_colors <- c("Sun cacao (n = 10)" = "#DFC27D",
+                   "Shade cacao (n = 11)" = "#A6611A") 
+
+plot_pca <- fviz_pca_biplot(pca_fit,
+                label = "var",
+                habillage = active_data$"Site type",
+                palette = custom_colors,
+                repel = TRUE,
+                mean.point = FALSE,
+                pointsize = 4,
+                labelsize = 6,
+                col.var = "black",
+                title = "") +
+  theme(legend.title = element_text(size = 26),
+        legend.text = element_text(size = 22),
+        axis.text = element_text(size = 26),
+        axis.title = element_text(size = 22))
+
+plot_pca
+#ggsave("output/plot_pca.png", width = 10, height = 10)
+```
+
+
+##c. assess distribution of response variables
 
 histogram of each response var
 - will assume Poisson distribution first b/c count data
@@ -889,18 +947,23 @@ hist(active_data$Simpson_Index) # use beta regression b/c between 0 and 1
 ```
 
 
-##c. assess correlation of predictor variables
+##d. assess correlation of predictor variables
+
+
+## #######nice histogram figure needs to go in here #######
+
+
 
 look at correlation matrix - high collinearity if correlation > 0.7
 - canopy cover and hoja highly scaled - just use canopy cover b/c measured once
 ```{r}
-ggpairs(active_data, columns = c(18,19,20,21,22,23))
+ggpairs(active_data, columns = c(17,18,19,20,21,22))
 ```
 
 canopy cover and hoja are highly correlated (0.873!) - only use canopy cover
 
 
-##d. abundance
+##e. abundance
 
 first plot variable relationships with abundance
 ```{r}
@@ -987,7 +1050,7 @@ best model:
 - null model - no terms, nothing sig.
 
 
-##e. richness
+##f. richness
 
 first plot variable relationships with richness
 ```{r}
@@ -1074,7 +1137,7 @@ best model:
 - null model - no terms, nothing sig.
 
 
-##f. Simpson diversity
+##g. Simpson diversity
 
 first plot variable relationships with simpson
 ```{r}
@@ -1155,7 +1218,7 @@ best model:
 - elevation significant negative effect
 
 
-##g. make AIC table
+##h. make AIC table
 
 for paper present best models for each response variable
 
