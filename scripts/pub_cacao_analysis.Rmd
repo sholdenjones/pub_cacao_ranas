@@ -13,7 +13,6 @@ Statistical tests and figures for cacao ranas publication
 
 ```{r}
 library(tidyverse)
-#library(RColorBrewer)
 library(GGally)
 library(car)
 library(ggpubr)
