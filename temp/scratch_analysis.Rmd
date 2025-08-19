@@ -337,3 +337,166 @@ create nmds stress function
 "Your NMDS stress value (0.221) is significantly lower than expected under the null model (p = 0.005). This means the observed community structure is unlikely to be random, and suggests meaningful ecological patterns across sites."
 
 
+
+
+
+## reorder plots horizontally for ESA presentation
+
+
+labels for arranged type figure
+```{r}
+type_site_labels <-  c("Sun \n (n = 10)", "Shade \n (n = 11)", 
+                       "Abandoned \n (n = 4)", "Forest \n (n =5)")
+```
+
+abundance across site types figure
+```{r}
+plot_type_abundance_ESA <- ggplot(site_data, 
+                                aes(x = n, y = Tipo, fill = Tipo)) +
+  geom_boxplot() +
+  scale_fill_manual(values = pal) +
+  scale_x_discrete(labels = c(type_site_labels)) +
+  my_theme()  +
+  labs(y = "Land use type",
+       x = "Abundance")
+
+
++
+  annotate("text", x = 2.5, y = max(site_data$n, na.rm = TRUE) * .7, 
+           label = "ns", size = 8) 
+
+
+# +
+#   theme(axis.title.x = element_blank(),
+#         axis.text.x = element_blank(),
+#         axis.ticks.x = element_blank())
+
+plot_type_abundance_ESA
+#ggsave("output/plot_type_abundance.png", width = 10, height = 10)
+```
+
+richness across site types figure
+```{r}
+plot_type_richness_ESA <- ggplot(site_data, 
+                                aes(x = Tipo, y = no_species, fill = Tipo)) +
+  geom_boxplot() +
+  scale_fill_manual(values = pal) +
+  scale_x_discrete(labels = c(type_site_labels)) +
+  my_theme() +
+  labs(y = "Richness",
+       x = "Land use type") +
+  annotate("text", x = 2.5, y = max(site_data$no_species, na.rm = TRUE) * .9, 
+           label = "ns", size = 8) 
+# +
+#   theme(axis.title.x = element_blank(),
+#         axis.text.x = element_blank(),
+#         axis.ticks.x = element_blank())
+
+plot_type_richness_ESA
+#ggsave("output/plot_type_richness.png", width = 10, height = 10)
+```
+
+Simpson across site types figure
+```{r}
+# plot Simpson Index across site types, labels different b/c bottom panel
+plot_type_simpson_ESA <- ggplot(site_data,
+                              aes(x = Tipo, y = Simpson_Index, fill = Tipo)) +
+  geom_boxplot() +
+  scale_fill_manual(values = pal) +
+  scale_x_discrete(labels = c(type_site_labels)) +
+  my_theme() +
+  # theme(axis.title.x = element_blank(),
+  #       axis.text.x = element_blank(),
+  #       axis.ticks.x = element_blank()) +
+  labs(x = "Land use type",
+       y = "Simpson\nIndex") +
+  annotate("text", x = 2.5, y = max(paired_data$Simpson_Index, na.rm = TRUE) * .8,
+           label = "ns", size = 8)
+
+plot_type_simpson_ESA
+ggsave("output/plot_type_simpson_ESA.png", width = 10, height = 10)
+```
+
+
+arrange all figures for publication
+- maybe just use this figure in the final publication
+```{r}
+plot_type_arrange_ESA <- ggarrange(
+  plot_type_abundance_ESA,
+  plot_type_richness_ESA,
+  plot_type_simpson_ESA,
+  labels = c("a", "b", "c"),
+  ncol = 3, nrow = 1,
+  label.x = 0.005,
+  label.y = 0.12,
+  font.label = list(size = 26, face = "bold"))
+
+plot_type_arrange_ESA
+#ggsave("output/plot_type_arrange.png", width = 10, height = 15)
+```
+
+
+
+
+
+
+```{r}
+library(cowplot)
+library(ggplot2)
+
+# 1) remove x-axis from the three panels
+p1 <- plot_type_abundance_ESA + 
+  theme(axis.title.x = element_blank(),
+        axis.text.x  = element_blank(),
+        axis.ticks.x = element_blank())
+
+p2 <- plot_type_richness_ESA + 
+  theme(axis.title.x = element_blank(),
+        axis.text.x  = element_blank(),
+        axis.ticks.x = element_blank())
+
+p3 <- plot_type_simpson_ESA + 
+  theme(axis.title.x = element_blank(),
+        axis.text.x  = element_blank(),
+        axis.ticks.x = element_blank())
+
+# 2) put the row together and add panel labels
+top_row <- plot_grid(p1, p2, p3,
+                     labels = c("a", "b", "c"),
+                     label_size = 26,
+                     label_fontface = "bold",
+                     ncol = 3, align = "v", rel_widths = c(1,1,1))
+
+# 3) create an axis-only plot that will serve as the shared x-axis
+#    (use the same factor and label ordering as your panels)
+xaxis_plot <- ggplot(site_data, aes(x = Tipo, y = 1)) +
+  geom_blank() +
+  scale_x_discrete(labels = type_site_labels) +   # make sure type_site_labels is a character vector
+  labs(x = "Land use type") +
+  theme_minimal() +
+  theme(
+    axis.title.y = element_blank(),
+    axis.text.y  = element_blank(),
+    axis.ticks.y = element_blank(),
+    panel.grid = element_blank(),
+    panel.background = element_blank(),
+    axis.title.x = element_text(size = 14, margin = margin(t = 6)),
+    axis.text.x  = element_text(size = 12),
+    plot.margin = margin(t = 0, r = 5, b = 0, l = 5)
+  )
+
+# 4) stack the row and the axis plot
+final_plot <- plot_grid(top_row, xaxis_plot, ncol = 1, rel_heights = c(1, 0.07))
+
+# show or save
+final_plot
+# ggsave("output/plot_type_arrange_shared_x.png", final_plot, width = 12, height = 5)
+
+```
+
+
+
+
+
+
+

@@ -87,7 +87,7 @@ paired_data <- site_data %>%
          !Sitio == 'VC-N')
 
 # site labels for paired visualizations
-paired_site_labels <-  c("Sun \n (n = 11)", "Shade \n (n = 11)")
+paired_site_labels <-  c("Sun \n (N = 11)", "Shade \n (N = 11)")
 ```
 
 
@@ -346,8 +346,8 @@ lrtest(glm_simpson_null, glm_type_simpson)
 
 labels for arranged type figure
 ```{r}
-type_site_labels <-  c("Sun \n (n = 10)", "Shade \n (n = 11)", 
-                       "Abandoned \n (n = 4)", "Forest \n (n =5)")
+type_site_labels <-  c("Sun \n (N = 10)", "Shade \n (N = 11)", 
+                       "Abandoned \n (N = 4)", "Forest \n (N =5)")
 ```
 
 abundance across site types figure
@@ -447,10 +447,10 @@ NMDS to visualize community differences
 create Bray-Curtis dissimilarity matrix from abundance-based new_matrix
 ```{r}
 # create a site type vector - this MUST align with order of sites
-site_types <- c(rep("Sun cacao (n = 10)", 10),
-                rep("Shade cacao (n = 11)", 11),
-                rep("Abandoned plantation (n = 4)", 4),
-                rep("Remnant forest (n = 5)", 5))
+site_types <- c(rep("Sun cacao (N = 10)", 10),
+                rep("Shade cacao (N = 11)", 11),
+                rep("Abandoned plantation (N = 4)", 4),
+                rep("Remnant forest (N = 5)", 5))
 
 dissimilarity_matrix <- vegdist(new_matrix, method = "bray")
 ```
@@ -469,10 +469,10 @@ round(nmds$stress,2) # 0.08
 # visualize and color by site type
 nmds_data <- as.data.frame(vegan::scores(nmds))
 nmds_data$site_type <- factor(site_types,
-                              levels = c("Sun cacao (n = 10)", 
-                                         "Shade cacao (n = 11)", 
-                                         "Abandoned plantation (n = 4)", 
-                                         "Remnant forest (n = 5)"))
+                              levels = c("Sun cacao (N = 10)", 
+                                         "Shade cacao (N = 11)", 
+                                         "Abandoned plantation (N = 4)", 
+                                         "Remnant forest (N = 5)"))
 ```
 
 plot NMDS, coloring by site type, without elipses
@@ -481,10 +481,10 @@ plot NMDS, coloring by site type, without elipses
 plot_nmds_bray <- ggplot(nmds_data, aes(x = NMDS1, y = NMDS2,
                                         color = site_type)) +
   geom_point(size = 4) +
-  scale_color_manual(values = c("Sun cacao (n = 10)" = "#DFC27D",
-                                "Shade cacao (n = 11)" = "#A6611A",
-                               "Abandoned plantation (n = 4)" = "#80CDC1",
-                               "Remnant forest (n = 5)" = "#018571")) +
+  scale_color_manual(values = c("Sun cacao (N = 10)" = "#DFC27D",
+                                "Shade cacao (N = 11)" = "#A6611A",
+                               "Abandoned plantation (N = 4)" = "#80CDC1",
+                               "Remnant forest (N = 5)" = "#018571")) +
   theme_minimal() +
   labs(color = "Land use type") +
   theme(axis.text = element_text(size = 22),
@@ -494,18 +494,25 @@ plot_nmds_bray <- ggplot(nmds_data, aes(x = NMDS1, y = NMDS2,
 plot_nmds_bray
 ```
 
-plot NMDS including elipses
+plot NMDS including elipses, stacking legend above plot
 ```{r}
-plot_nmds_bray +
-  stat_ellipse(aes(group = site_type), 
-               type = "norm", 
-               level = 0.95, 
-               linewidth = 1, 
-               linetype = "dashed")
+plot_nmds_bray <- plot_nmds_bray +
+  stat_ellipse(
+    aes(group = site_type, color = site_type),
+    type = "norm",
+    level = 0.95,
+    linewidth = 1,
+    linetype = "dashed"
+  ) +
+  guides(color = guide_legend(ncol = 1)) +
+  theme(
+    legend.position = "bottom",                
+    legend.text = element_text(size = 22),  
+    legend.title = element_text(size = 24)  
+  )
 
 #ggsave("output/plot_nmds_bray.png", width = 15, height = 10)
 ```
-
 
 ### test NMDS fit with null models
 
@@ -565,10 +572,10 @@ join site_types from above to site_metadata for assigning group ID
 ```{r}
 # make sure site_types from above is a factor
 site_types <- factor(site_types,
-                           levels = c("Sun cacao (n = 10)", 
-                                      "Shade cacao (n = 11)", 
-                                      "Abandoned plantation (n = 4)", 
-                                      "Remnant forest (n = 5)"))
+                           levels = c("Sun cacao (N = 10)", 
+                                      "Shade cacao (N = 11)", 
+                                      "Abandoned plantation (N = 4)", 
+                                      "Remnant forest (N = 5)"))
 
 site_metadata <- data.frame(
   site_id = rownames(new_matrix),
@@ -732,10 +739,10 @@ plot iNEXT extrapolation for species richness
 plot_extrapolate_richness <- ggiNEXT(extrapolate_richness, type = 1) +
   ylab("Species richness") +
   scale_color_manual(values = c(
-    "Sun cacao (n = 10)" = "#DFC27D", 
-    "Shade cacao (n = 11)" = "#A6611A",
-    "Abandoned plantation (n = 4)" = "#80CDC1", 
-    "Remnant forest (n = 5)" = "#018571")) +
+    "Sun cacao (N = 10)" = "#DFC27D", 
+    "Shade cacao (N = 11)" = "#A6611A",
+    "Abandoned plantation (N = 4)" = "#80CDC1", 
+    "Remnant forest (N = 5)" = "#018571")) +
   theme_minimal(base_size = 14) +
   theme(
     panel.grid = element_blank(),
@@ -756,10 +763,10 @@ plot iNEXT extrapolation for Shannon
 plot_extrapolate_shannon <- ggiNEXT(extrapolate_shannon, type = 1) +
   ylab("Shannon diversity") +
   scale_color_manual(values = c(
-    "Sun cacao (n = 10)" = "#DFC27D", 
-    "Shade cacao (n = 11)" = "#A6611A",
-    "Abandoned plantation (n = 4)" = "#80CDC1", 
-    "Remnant forest (n = 5)" = "#018571")) +
+    "Sun cacao (N = 10)" = "#DFC27D", 
+    "Shade cacao (N = 11)" = "#A6611A",
+    "Abandoned plantation (N = 4)" = "#80CDC1", 
+    "Remnant forest (N = 5)" = "#018571")) +
   theme_minimal(base_size = 14) +
   theme(
     panel.grid = element_blank(),
@@ -780,10 +787,10 @@ plot iNEXT extrapolation for Simpson
 plot_extrapolate_simpson <- ggiNEXT(extrapolate_simpson, type = 1) +
   ylab("Simpson diversity") +
   scale_color_manual(values = c(
-    "Sun cacao (n = 10)" = "#DFC27D", 
-    "Shade cacao (n = 11)" = "#A6611A",
-    "Abandoned plantation (n = 4)" = "#80CDC1", 
-    "Remnant forest (n = 5)" = "#018571")) +
+    "Sun cacao (N = 10)" = "#DFC27D", 
+    "Shade cacao (N = 11)" = "#A6611A",
+    "Abandoned plantation (N = 4)" = "#80CDC1", 
+    "Remnant forest (N = 5)" = "#018571")) +
   theme_minimal(base_size = 14) +
   theme(
     panel.grid = element_blank(),
@@ -794,9 +801,24 @@ plot_extrapolate_simpson <- ggiNEXT(extrapolate_simpson, type = 1) +
     legend.title = element_blank(),
     legend.text = element_text(size = 22),
   )
+```
 
-# extract legend to plot below x-axis, then remove from plot
-simpson_legend <- get_legend(plot_extrapolate_simpson)
+
+### arrange iNEXT figures for each Hill number
+
+extract legend from Simpson plot, update Simpson plot without legend
+```{r}
+# extract legend, nudged slightly down into the plotting area
+simpson_legend <- get_legend(
+  plot_extrapolate_simpson +
+    theme(
+      legend.position = c(0.35, -1.0),     # center (x=0.5), nudge down with y < 1.05
+      legend.justification = "center",
+      legend.direction = "vertical",
+      legend.text = element_text(size = 22),
+      legend.title = element_text(size = 24)
+    )
+)
 
 plot_extrapolate_simpson <- plot_extrapolate_simpson +
   theme(legend.position = "none")
@@ -804,9 +826,7 @@ plot_extrapolate_simpson <- plot_extrapolate_simpson +
 plot_extrapolate_simpson
 ```
 
-
-### arrange iNEXT figures for each Hill number
-
+put everything together
 ```{r}
 plot_extrapolate_arrange <- ggarrange(
   simpson_legend,
@@ -815,14 +835,18 @@ plot_extrapolate_arrange <- ggarrange(
   plot_extrapolate_simpson,
   ncol = 1,
   labels = c("", "a", "b", "c"),
-  font.label = list(size = 26, face = "bold"),
+  font.label = list(size = 24, face = "bold"),
   label.x = 0.005,
   label.y = 0.15,
   heights = c(0.15, 1, 1, 1)
 )
 
 plot_extrapolate_arrange
-#ggsave("output/plot_extrapolate_arrange.png", width = 10, height = 15)
+
+# ggsave("output/plot_extrapolate_arrange.png",
+#        plot_extrapolate_arrange,
+#        width = 10, height = 15,
+#        limitsize = FALSE)
 ```
 
 
@@ -873,8 +897,8 @@ active_data_pca <- active_data[,-c(1,3:11,16)]
 # rename CCN, Nacional to sun and shade respectively
 active_data_pca <- active_data_pca %>%
   mutate(Tipo = dplyr::recode(as.character(Tipo),
-                       "C" = "Sun cacao (n = 10)",
-                       "N" = "Shade cacao (n = 11)"))
+                       "C" = "Sun cacao (N = 10)",
+                       "N" = "Shade cacao (N = 11)"))
 
 # rename columns for plotting
 active_data_pca <- active_data_pca %>%
@@ -908,8 +932,8 @@ biplot(x = pca_fit)
 ```
 
 ```{r}
-custom_colors <- c("Sun cacao (n = 10)" = "#DFC27D",
-                   "Shade cacao (n = 11)" = "#A6611A") 
+custom_colors <- c("Sun cacao (N = 10)" = "#DFC27D",
+                   "Shade cacao (N = 11)" = "#A6611A") 
 
 plot_pca <- fviz_pca_biplot(pca_fit,
                 label = "var",
