@@ -381,7 +381,7 @@ plot_type_richness <- ggplot(site_data,
         axis.text.x = element_blank(),
         axis.ticks.x = element_blank()) +
   labs(y = "Richness") +
-  annotate("text", x = 2.5, y = max(site_data$no_species, na.rm = TRUE) * .9, 
+  annotate("text", x = 2.5, y = max(site_data$no_species, na.rm = TRUE) * .95, 
            label = "ns", size = 8)
 
 plot_type_richness
@@ -400,32 +400,34 @@ plot_type_simpson <- ggplot(site_data,
   theme(axis.title.y = element_text(margin = margin(r = 10)),
         axis.title.x = element_text(margin = margin(t = 10))) +
   labs(x = "Land use type",
-       y = "Simpson\nIndex") +
-  annotate("text", x = 2.5, y = max(paired_data$Simpson_Index, na.rm = TRUE) * .8,
+       y = "Simpson") +
+  annotate("text", x = 2.5, y = max(site_data$Simpson_Index, na.rm = TRUE) * .8,
            label = "ns", size = 8)
 
 plot_type_simpson
 ```
 
 arrange all figures for publication
-- maybe just use this figure in the final publication
+- just use this figure in the final publication
 ```{r}
 plot_type_arrange <- ggarrange(
   plot_type_abundance +
     theme(axis.title.y = element_text(hjust = 0.5),
-          plot.margin = margin(5, 5, 5, 20)),
+          plot.margin = margin(15, 15, 15, 15)),
   plot_type_richness +
     theme(axis.title.y = element_text(hjust = 0.5),
-          plot.margin = margin(5, 5, 5, 20)),
+          plot.margin = margin(15, 15, 15, 15)),
   plot_type_simpson +
     theme(axis.title.y = element_text(hjust = 0.35),
-          plot.margin = margin(5, 5, 10, 5)),
+          plot.margin = margin(15, 15, 15, 15)),
   labels = c("a", "b", "c"),
   ncol = 1, nrow = 3,
   align = "v",
   label.x = 0.005,
   label.y = 0.12,
   font.label = list(size = 26, face = "bold"))
+
+
 
 plot_type_arrange
 #ggsave("output/plot_type_arrange.png", width = 10, height = 15)
