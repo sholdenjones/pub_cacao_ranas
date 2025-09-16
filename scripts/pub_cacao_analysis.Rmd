@@ -366,7 +366,22 @@ plot_type_abundance <- ggplot(site_data,
            label = "ns", size = 8)
 
 plot_type_abundance
-#ggsave("output/plot_type_abundance.png", width = 10, height = 10)
+
+# above will be used in manuscript, but create below w/ axes for presentations
+plot_type_abundance_full <- ggplot(site_data, 
+                                aes(x = Tipo, y = n, fill = Tipo)) +
+  geom_boxplot() +
+  scale_fill_manual(values = pal) +
+  scale_x_discrete(labels = c(type_site_labels)) +
+  my_theme() +
+  theme(plot.margin = margin(15, 15, 15, 15)) +
+  labs(x = "Land use type",
+       y = "Abundance") +
+  annotate("text", x = 2.5, y = max(site_data$n, na.rm = TRUE) * .7, 
+           label = "ns", size = 8)
+
+plot_type_abundance_full
+#ggsave("output/plot_type_abundance_full.png", width = 10, height = 10)
 ```
 
 richness across site types figure
@@ -385,7 +400,22 @@ plot_type_richness <- ggplot(site_data,
            label = "ns", size = 8)
 
 plot_type_richness
-#ggsave("output/plot_type_richness.png", width = 10, height = 10)
+
+# above will be used in manuscript, but create below w/ axes for presentations
+plot_type_richness_full <- ggplot(site_data, 
+                                aes(x = Tipo, y = no_species, fill = Tipo)) +
+  geom_boxplot() +
+  scale_fill_manual(values = pal) +
+  scale_x_discrete(labels = c(type_site_labels)) +
+  my_theme() +
+  theme(plot.margin = margin(15, 15, 15, 15)) +
+  labs(x = "Land use type",
+       y = "Richness") +
+  annotate("text", x = 2.5, y = max(site_data$no_species, na.rm = TRUE) * .95, 
+           label = "ns", size = 8)
+
+plot_type_richness_full
+#ggsave("output/plot_type_richness_full.png", width = 10, height = 10)
 ```
 
 Simpson across site types figure
@@ -405,6 +435,24 @@ plot_type_simpson <- ggplot(site_data,
            label = "ns", size = 8)
 
 plot_type_simpson
+
+# above will be used in manuscript, but create below w/ axes for presentations
+plot_type_simpson_full <- ggplot(site_data,
+                              aes(x = Tipo, y = Simpson_Index, fill = Tipo)) +
+  geom_boxplot() +
+  scale_fill_manual(values = pal) +
+  scale_x_discrete(labels = c(type_site_labels)) +
+  my_theme() +
+  theme(axis.title.y = element_text(margin = margin(r = 10)),
+        axis.title.x = element_text(margin = margin(t = 10)),
+        plot.margin = margin(15, 15, 15, 15)) +
+  labs(x = "Land use type",
+       y = "Simpson diversity") +
+  annotate("text", x = 2.5, y = max(site_data$Simpson_Index, na.rm = TRUE) * .8,
+           label = "ns", size = 8)
+
+plot_type_simpson_full
+#ggsave("output/plot_type_simpson_full.png", width = 10, height = 10)
 ```
 
 arrange all figures for publication
