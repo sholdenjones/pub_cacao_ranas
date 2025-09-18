@@ -804,6 +804,25 @@ plot_extrapolate_richness <- ggiNEXT(extrapolate_richness, type = 1) +
   )
 
 plot_extrapolate_richness
+
+# above will be used in manuscript, but create below w/ axes for presentations
+plot_extrapolate_richness_full <- ggiNEXT(extrapolate_richness, type = 1) +
+  ylab("Species richness") +
+  scale_color_manual(values = c(
+    "Sun cacao (N = 10)" = "#DFC27D", 
+    "Shade cacao (N = 11)" = "#A6611A",
+    "Abandoned plantation (N = 4)" = "#80CDC1", 
+    "Remnant forest (N = 5)" = "#018571")) +
+  theme_minimal(base_size = 14) +
+  theme(panel.grid = element_blank(),
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.title = element_text(size = 26), 
+    axis.text = element_text(size = 22), 
+    legend.text = element_text(size = 22)) 
+
+plot_extrapolate_richness_full
+#ggsave("output/plot_extrapolate_richness_full.png", width = 15, height = 10)
 ```
 
 plot iNEXT extrapolation for Shannon
@@ -828,6 +847,26 @@ plot_extrapolate_shannon <- ggiNEXT(extrapolate_shannon, type = 1) +
   )
 
 plot_extrapolate_shannon
+
+# above will be used in manuscript, but create below w/ axes for presentations
+plot_extrapolate_shannon_full <- ggiNEXT(extrapolate_shannon, type = 1) +
+  ylab("Shannon diversity") +
+  scale_color_manual(values = c(
+    "Sun cacao (N = 10)" = "#DFC27D", 
+    "Shade cacao (N = 11)" = "#A6611A",
+    "Abandoned plantation (N = 4)" = "#80CDC1", 
+    "Remnant forest (N = 5)" = "#018571")) +
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid = element_blank(),
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.title = element_text(size = 26), 
+    axis.text = element_text(size = 22), 
+    legend.text = element_text(size = 22))
+
+plot_extrapolate_shannon_full
+#ggsave("output/plot_extrapolate_shannon_full.png", width = 15, height = 10)
 ```
 
 plot iNEXT extrapolation for Simpson
@@ -849,6 +888,9 @@ plot_extrapolate_simpson <- ggiNEXT(extrapolate_simpson, type = 1) +
     legend.title = element_blank(),
     legend.text = element_text(size = 22),
   )
+
+plot_extrapolate_simpson
+#ggsave("output/plot_extrapolate_simpson.png", width = 15, height = 10)
 ```
 
 
