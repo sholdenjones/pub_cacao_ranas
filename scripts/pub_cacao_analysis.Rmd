@@ -1412,51 +1412,15 @@ summary(best_simpson_model)
 plot(best_simpson_model)
 ```
 
-beta regression Simpson model summary
-
-full model:
-- no issues with model fit
-- elevation significant negative effect
-
-dredge:
-- elv, elv, CC models both have delta AIC <2.0
-
-best model:
-- no issues with model fit
-- elevation significant negative effect
-
-
-##i. make AIC table
-
-for paper present best models for each response variable
-
-select models with delta AIC <2.0, combine into one model
-- doing the rest of formatting by hand with exported csv
+visualize effects of elevation
 ```{r}
-# select top models with delta <2 for each response variable
-top_abundance_models <- as.data.frame(subset(abundance_model_set, delta < 2)) %>%
-  mutate(Response = "Abundance",
-         Distribution = "Negative binomial") %>% 
-  dplyr::select(Response, Distribution, everything())
+# marginal effects for elevation_scaled
+eff <- ggpredict(best_simpson_model, terms = "elevation_scaled")
 
-top_richness_models <- as.data.frame(subset(richness_model_set, delta < 2)) %>%
-  mutate(Response = "Richness",
-         Distribution = "Poisson") %>% 
-  dplyr::select(Response, Distribution, everything())
-
-top_simpson_models <- as.data.frame(subset(simpson_model_set, delta < 2)) %>%
-  mutate(Response = "Simpson Index",
-         Distribution = "Beta regression") %>% 
-  dplyr::select(Response, Distribution, everything())
-
-combined_model_table <- bind_rows(
-  top_abundance_models,
-  top_richness_models,
-  top_simpson_models
-)
-
-# export to csv for further formatting
-# write.csv(combined_model_table, "output/combined_model_selection_table.csv", 
-#           row.names = FALSE)
+# plot with ggplot2
+plot(eff) +
+  labs(x = "Elevation (scaled)",
+    y = "Predicted Simpson diversity") +
+  theme_minimal(base_size = 14)
 ```
 
