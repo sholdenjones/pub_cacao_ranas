@@ -1408,6 +1408,11 @@ best_simpson_model <- get.models(simpson_model_set, subset = 1)[[1]]
 
 summary(best_simpson_model)
 
+# get the second best model to calculate pseudo-R2 as requested by subject editor
+second_simpson_model <- get.models(simpson_model_set, subset = 2)[[1]]
+
+summary(second_simpson_model)
+
 # assess best full model fit - NOTE THAT DHARMA DOES NOT WORK WITH BETAREG MODELS
 plot(best_simpson_model)
 ```
