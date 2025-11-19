@@ -1160,6 +1160,90 @@ plot_hist_arrange
 ```
 
 
+
+
+#### WORKING
+
+assess statistical significance of environmental variables across land use types
+
+```{r}
+# ensure Tipo is a factor
+site_data$Tipo <- as.factor(site_data$Tipo)
+```
+
+use for loop to do the following for each environmental variable
+- test normality of distribution
+- if normal, run ANOVA, if not, stop
+- if significant, run Tukey HSD, if not, stop
+
+tested and confirmed this is correct for forest, vegetation, elevation
+```{r}
+# Variables you want to analyze
+vars <- c("site_mean_hoja",
+          "site_mean_CC",
+          "site_mean_veg",
+          "forest_cover_400",
+          "water_dist",
+          "Elevation")
+
+# Ensure Tipo is a factor
+site_data$Tipo <- as.factor(site_data$Tipo)
+
+# Empty list to store results
+results <- list()
+
+for (v in vars) {
+  
+  cat("\n==============================\n")
+  cat("Variable:", v, "\n")
+  cat("==============================\n")
+  
+  # Build formula dynamically
+  form <- as.formula(paste(v, "~ Tipo"))
+  
+  # Fit ANOVA model
+  model <- aov(form, data = site_data)
+  
+  # Shapiro–Wilk normality test
+  shapiro <- shapiro.test(residuals(model))
+  cat("Shapiro–Wilk p =", shapiro$p.value, "\n")
+  
+  # Save into results list
+  results[[v]] <- list(
+    model = model,
+    shapiro = shapiro
+  )
+  
+  # Check normality (p > 0.05 means OK)
+  if (shapiro$p.value > 0.05) {
+    cat("Normality OK → Running ANOVA\n")
+    anova_out <- summary(model)
+    print(anova_out)
+    
+    # Save ANOVA result
+    results[[v]]$anova <- anova_out
+    
+    # If ANOVA significant, run Tukey
+    p_anova <- anova_out[[1]]$`Pr(>F)`[1]
+    
+    if (p_anova < 0.05) {
+      cat("ANOVA significant → Running Tukey HSD\n")
+      tuk <- TukeyHSD(model)
+      print(tuk)
+      results[[v]]$tukey <- tuk
+    } else {
+      cat("ANOVA NOT significant → Skipping Tukey\n")
+    }
+    
+  } else {
+    cat("Normality NOT met → Skipping ANOVA and Tukey for this variable\n")
+  }
+}
+```
+
+
+
+
 ##e. assess correlation of predictor variables
 
 look at correlation matrix - high collinearity if correlation > 0.7
