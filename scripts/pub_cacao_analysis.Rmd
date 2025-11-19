@@ -1159,16 +1159,8 @@ plot_hist_arrange
 #ggsave("output/plot_hist_arrange.png", width = 10, height = 10)
 ```
 
-
-#### WORKING
-
-
-
-## calculate mean and sd for each tipo
-
-
+define environmental variables of interest
 ```{r}
-# Variables you want to analyze
 vars <- c("site_mean_hoja",
           "site_mean_CC",
           "site_mean_veg",
@@ -1177,34 +1169,19 @@ vars <- c("site_mean_hoja",
           "Elevation")
 ```
 
-
-
-## this part isn't working, but see if can get for loop going here
-
-
+calculate mean and sd for each land use type
 ```{r}
-# summary_stats <- site_data %>%
-#   select(Tipo, dplyr::all_of(vars)) %>% # specify all_of from dplyr
-#   pivot_longer(cols = all_of(vars),
-#                names_to = "variable",
-#                values_to = "value") %>%
-#   group_by(Tipo, variable) %>%
-#   summarise(
-#     mean = mean(value, na.rm = TRUE),
-#     sd   = sd(value, na.rm = TRUE),
-#     n    = n(),
-#     .groups = "drop"
-#   )
-# 
-# summary_stats
+type_environmental_summary <- site_data %>%
+  group_by(Tipo) %>%
+  summarise(
+    across(all_of(vars),
+           list(mean = ~mean(.x, na.rm = TRUE),
+                sd   = ~sd(.x, na.rm = TRUE)),
+           .names = "{.col}_{.fn}")
+  )
 ```
 
-
-
-#### WORKING
-
 assess statistical significance of environmental variables across land use types
-
 ```{r}
 # ensure Tipo is a factor
 site_data$Tipo <- as.factor(site_data$Tipo)
@@ -1269,10 +1246,11 @@ for (v in vars) {
 }
 ```
 
-
-#### need to run different test for elevation b/c not normal ####
-
-
+elevation was not normally distributed
+- run a Kruskal-Wallis test instead
+```{r}
+kruskal.test(Elevation ~ Tipo, data = site_data)
+```
 
 
 ##e. assess correlation of predictor variables
