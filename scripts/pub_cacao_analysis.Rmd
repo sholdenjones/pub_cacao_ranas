@@ -1160,6 +1160,45 @@ plot_hist_arrange
 ```
 
 
+#### WORKING
+
+
+
+## calculate mean and sd for each tipo
+
+
+```{r}
+# Variables you want to analyze
+vars <- c("site_mean_hoja",
+          "site_mean_CC",
+          "site_mean_veg",
+          "forest_cover_400",
+          "water_dist",
+          "Elevation")
+```
+
+
+
+## this part isn't working, but see if can get for loop going here
+
+
+```{r}
+# summary_stats <- site_data %>%
+#   select(Tipo, dplyr::all_of(vars)) %>% # specify all_of from dplyr
+#   pivot_longer(cols = all_of(vars),
+#                names_to = "variable",
+#                values_to = "value") %>%
+#   group_by(Tipo, variable) %>%
+#   summarise(
+#     mean = mean(value, na.rm = TRUE),
+#     sd   = sd(value, na.rm = TRUE),
+#     n    = n(),
+#     .groups = "drop"
+#   )
+# 
+# summary_stats
+```
+
 
 
 #### WORKING
@@ -1178,17 +1217,6 @@ use for loop to do the following for each environmental variable
 
 tested and confirmed this is correct for forest, vegetation, elevation
 ```{r}
-# Variables you want to analyze
-vars <- c("site_mean_hoja",
-          "site_mean_CC",
-          "site_mean_veg",
-          "forest_cover_400",
-          "water_dist",
-          "Elevation")
-
-# Ensure Tipo is a factor
-site_data$Tipo <- as.factor(site_data$Tipo)
-
 # Empty list to store results
 results <- list()
 
@@ -1240,6 +1268,9 @@ for (v in vars) {
   }
 }
 ```
+
+
+#### need to run different test for elevation b/c not normal ####
 
 
 
